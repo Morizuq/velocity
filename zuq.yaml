@@ -6,3 +6,7 @@ features_path: lib/features
 modules:
   - routing
   - theme
+  - storage
+  - analytics
+  - config
+  - networking

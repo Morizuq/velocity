@@ -1,6 +1,6 @@
 
-import 'package:velocity/main.dart';
 import 'package:go_router/go_router.dart';
+import '../../features/dashboard/presentation/dashboard_page.dart';
 import 'routes.dart';
 
 final router = GoRouter(
@@ -8,7 +8,7 @@ final router = GoRouter(
   routes: [
     GoRoute(
       path: Routes.home,
-      builder: (context, state) => const HomeScreen(),
+      builder: (context, state) => const DashboardPage(),
     ),
   ],
 );

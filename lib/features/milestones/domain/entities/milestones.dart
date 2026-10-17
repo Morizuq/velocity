@@ -1,0 +1,3 @@
+class Milestones {
+  const Milestones();
+}

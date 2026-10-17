@@ -1,0 +1,3 @@
+class Clearance {
+  const Clearance();
+}

@@ -18,10 +18,14 @@ class AppTheme {
       onSurface: AppColors.onBackground,
     ),
     brandColors: const BrandColors(
-      dark: Color(0xFF26215C),
-      mid: Color(0xFF534AB7),
-      subtle: Color(0xFFEEEDFE),
-      accent: Color(0xFFAFA9EC),
+      dark: Color(0xFF0F172A),
+      mid: Color(0xFF6366F1),
+      subtle: Color(0xFFEEF2FF),
+      accent: Color(0xFF818CF8),
+      debt: Color(0xFFE11D48),
+      progress: Color(0xFF059669),
+      milestone: Color(0xFF0284C7),
+      surfaceCard: Color(0xFFFFFFFF),
     ),
   );
 
@@ -33,12 +37,21 @@ class AppTheme {
       onPrimary: AppColors.onPrimaryDark,
       surface: AppColors.backgroundDark,
       onSurface: AppColors.onBackgroundDark,
+      surfaceContainerLow: Color(0xFF11151E),
+      surfaceContainer: Color(0xFF161B26),
+      surfaceContainerHigh: Color(0xFF1E2433),
+      outline: Color(0xFF283042),
+      outlineVariant: Color(0xFF1F2636),
     ),
     brandColors: const BrandColors(
-      dark: Color(0xFFEEEDFE),
-      mid: Color(0xFFAFA9EC),
-      subtle: Color(0xFF26215C),
-      accent: Color(0xFF534AB7),
+      dark: Color(0xFFF8FAFC),
+      mid: Color(0xFF818CF8),
+      subtle: Color(0xFF181D29),
+      accent: Color(0xFFA5B4FC),
+      debt: Color(0xFFFF5252),      // Neon Debt Red
+      progress: Color(0xFF00E676),  // Neon Emerald
+      milestone: Color(0xFF00E5FF), // Electric Cyan
+      surfaceCard: Color(0xFF131823),
     ),
   );
 

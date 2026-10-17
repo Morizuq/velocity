@@ -1,0 +1,3 @@
+class Dashboard {
+  const Dashboard();
+}
