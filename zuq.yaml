@@ -1,0 +1,8 @@
+name: velocity
+state_management: riverpod
+router: go_router
+preset: default
+features_path: lib/features
+modules:
+  - routing
+  - theme
