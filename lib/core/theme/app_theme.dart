@@ -8,7 +8,7 @@ import 'app_colors.dart';
 class AppTheme {
   AppTheme._();
 
-  /// Default light theme configuration.
+  /// Refined light theme configuration with borderless soft cards, zero purple.
   static ThemeData get lightTheme => buildTheme(
     brightness: Brightness.light,
     colorScheme: const ColorScheme.light(
@@ -16,12 +16,17 @@ class AppTheme {
       onPrimary: AppColors.onPrimary,
       surface: AppColors.background,
       onSurface: AppColors.onBackground,
+      surfaceContainerLowest: Color(0xFFFFFFFF),
+      surfaceContainerLow: Color(0xFFFFFFFF),
+      surfaceContainer: Color(0xFFF1F5F9),
+      surfaceContainerHigh: Color(0xFFE2E8F0),
+      outlineVariant: Colors.transparent, // Avoid wireframe borders
     ),
     brandColors: const BrandColors(
       dark: Color(0xFF0F172A),
-      mid: Color(0xFF6366F1),
-      subtle: Color(0xFFEEF2FF),
-      accent: Color(0xFF818CF8),
+      mid: Color(0xFF0284C7),
+      subtle: Color(0xFFF0F4F8),
+      accent: Color(0xFF0284C7),
       debt: Color(0xFFE11D48),
       progress: Color(0xFF059669),
       milestone: Color(0xFF0284C7),
@@ -29,7 +34,7 @@ class AppTheme {
     ),
   );
 
-  /// Default dark theme configuration.
+  /// Default sleek dark theme with obsidian depth and neon visual hierarchy, zero purple.
   static ThemeData get darkTheme => buildTheme(
     brightness: Brightness.dark,
     colorScheme: const ColorScheme.dark(
@@ -37,26 +42,25 @@ class AppTheme {
       onPrimary: AppColors.onPrimaryDark,
       surface: AppColors.backgroundDark,
       onSurface: AppColors.onBackgroundDark,
-      surfaceContainerLow: Color(0xFF11151E),
-      surfaceContainer: Color(0xFF161B26),
-      surfaceContainerHigh: Color(0xFF1E2433),
-      outline: Color(0xFF283042),
-      outlineVariant: Color(0xFF1F2636),
+      surfaceContainerLowest: Color(0xFF0D121B),
+      surfaceContainerLow: Color(0xFF111723),
+      surfaceContainer: Color(0xFF151D2C),
+      surfaceContainerHigh: Color(0xFF1B2436),
+      outlineVariant: Colors.transparent, // Avoid wireframe borders
     ),
     brandColors: const BrandColors(
       dark: Color(0xFFF8FAFC),
-      mid: Color(0xFF818CF8),
-      subtle: Color(0xFF181D29),
-      accent: Color(0xFFA5B4FC),
+      mid: Color(0xFF38BDF8),
+      subtle: Color(0xFF131A26),
+      accent: Color(0xFF38BDF8),
       debt: Color(0xFFFF5252),      // Neon Debt Red
       progress: Color(0xFF00E676),  // Neon Emerald
       milestone: Color(0xFF00E5FF), // Electric Cyan
-      surfaceCard: Color(0xFF131823),
+      surfaceCard: Color(0xFF111724), // Sleek obsidian card surface
     ),
   );
 
-  /// Builds a cohesive [ThemeData] allowing custom typography configuration
-  /// (e.g. from Google Fonts or local TTF assets).
+  /// Builds a cohesive [ThemeData] allowing custom typography configuration.
   static ThemeData buildTheme({
     required Brightness brightness,
     required ColorScheme colorScheme,
@@ -67,6 +71,11 @@ class AppTheme {
       useMaterial3: true,
       brightness: brightness,
       colorScheme: colorScheme,
+      scaffoldBackgroundColor: colorScheme.surface,
+      cardTheme: const CardThemeData(
+        elevation: 0,
+        margin: EdgeInsets.zero,
+      ),
       textTheme: typography.toTextTheme(defaultColor: colorScheme.onSurface),
       extensions: [brandColors, typography],
     );

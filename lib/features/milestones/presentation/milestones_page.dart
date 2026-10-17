@@ -26,8 +26,11 @@ class MilestonesPage extends ConsumerWidget {
           final milestone = milestones[index];
           return MilestoneCard(
             milestone: milestone,
-            onFundMilestone: (amount) =>
-                milestonesNotifier.allocateFunds(milestone.id, amount),
+            onAdjustDelta: (delta) =>
+                milestonesNotifier.adjustFunds(milestone.id, delta),
+            onSetExactTotal: (newTotal) =>
+                milestonesNotifier.setMilestoneAmount(milestone.id, newTotal),
+            onDelete: () => milestonesNotifier.deleteMilestone(milestone.id),
           );
         },
       ),

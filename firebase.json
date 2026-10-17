@@ -1,0 +1,14 @@
+{
+  "flutter": {
+    "platforms": {
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "velocity-18955",
+          "configurations": {
+            "web": "1:871739103993:web:66c1133be99fd0c71ba028"
+          }
+        }
+      }
+    }
+  }
+}

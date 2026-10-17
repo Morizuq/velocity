@@ -1,71 +1,75 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/storage/shared_prefs_storage.dart';
 import '../../domain/entities/debt_entity.dart';
 
-/// State notifier managing clearance debts, payments, and burn-down progression.
+/// State notifier managing clearance debts, payments, and local database persistence.
 class ClearanceController extends Notifier<List<DebtEntity>> {
+  static const _storageKey = 'velocity_clearance_debts';
+
   @override
   List<DebtEntity> build() {
-    // Initial seeded baseline representing debts outlined in project scope
-    return const [
-      DebtEntity(
-        id: 'debt_kuda',
-        creditor: 'Kuda',
-        totalOwed: 100000,
-        amountPaid: 45000,
-        isCleared: false,
-      ),
-      DebtEntity(
-        id: 'debt_palmpay',
-        creditor: 'Palmpay',
-        totalOwed: 50000,
-        amountPaid: 20000,
-        isCleared: false,
-      ),
-      DebtEntity(
-        id: 'debt_justin',
-        creditor: 'Justin',
-        totalOwed: 80000,
-        amountPaid: 30000,
-        isCleared: false,
-      ),
-      DebtEntity(
-        id: 'debt_mom',
-        creditor: 'Mom',
-        totalOwed: 150000,
-        amountPaid: 150000,
-        isCleared: true,
-      ),
-    ];
+    try {
+      final storage = ref.watch(storageServiceProvider);
+      final raw = storage.getString(_storageKey);
+      if (raw != null && raw.isNotEmpty) {
+        final decoded = jsonDecode(raw) as List<dynamic>;
+        return decoded
+            .map((e) => DebtEntity.fromMap(e as Map<String, dynamic>))
+            .toList();
+      }
+    } catch (_) {}
+
+    return const [];
+  }
+
+  void _persist(List<DebtEntity> updated) {
+    try {
+      final storage = ref.read(storageServiceProvider);
+      final encoded = jsonEncode(updated.map((d) => d.toMap()).toList());
+      storage.setString(_storageKey, encoded);
+    } catch (_) {}
   }
 
   /// Deducts an incoming payment from the target debt.
   void logPayment(String debtId, double paymentAmount) {
-    state = [
+    final updated = [
       for (final debt in state)
         if (debt.id == debtId)
           debt.copyWith(
-            amountPaid: (debt.amountPaid + paymentAmount).clamp(0.0, debt.totalOwed),
+            amountPaid: (debt.amountPaid + paymentAmount).clamp(
+              0.0,
+              debt.totalOwed,
+            ),
           )
         else
           debt,
     ];
+    state = updated;
+    _persist(updated);
   }
 
   /// Appends a new debt to the clearance bucket.
-  void addDebt({required String creditor, required double totalOwed}) {
+  void addDebt({
+    required String creditor,
+    required double totalOwed,
+    double initialPaid = 0.0,
+  }) {
     final newDebt = DebtEntity(
       id: 'debt_${DateTime.now().millisecondsSinceEpoch}',
       creditor: creditor,
       totalOwed: totalOwed,
-      amountPaid: 0.0,
-      isCleared: false,
+      amountPaid: initialPaid,
+      isCleared: initialPaid >= totalOwed && totalOwed > 0,
     );
-    state = [...state, newDebt];
+    final updated = [...state, newDebt];
+    state = updated;
+    _persist(updated);
   }
 
   /// Toggles clearance status directly.
   void toggleCleared(String debtId) {
-    state = [
+    final updated = [
       for (final debt in state)
         if (debt.id == debtId)
           debt.copyWith(
@@ -75,21 +79,29 @@ class ClearanceController extends Notifier<List<DebtEntity>> {
         else
           debt,
     ];
+    state = updated;
+    _persist(updated);
+  }
+
+  /// Deletes a debt item from local storage.
+  void deleteDebt(String debtId) {
+    final updated = state.where((d) => d.id != debtId).toList();
+    state = updated;
+    _persist(updated);
   }
 }
 
 final clearanceControllerProvider =
     NotifierProvider<ClearanceController, List<DebtEntity>>(
-  ClearanceController.new,
-);
+      ClearanceController.new,
+    );
 
 /// Provider computing total remaining unpaid clearance debt across all active accounts.
 final totalClearanceDebtProvider = Provider<double>((ref) {
   final debts = ref.watch(clearanceControllerProvider);
-  return debts.where((d) => !d.isCleared).fold<double>(
-        0.0,
-        (sum, debt) => sum + debt.remainingAmount,
-      );
+  return debts
+      .where((d) => !d.isCleared)
+      .fold<double>(0.0, (sum, debt) => sum + debt.remainingAmount);
 });
 
 /// Provider computing total original debt balance.

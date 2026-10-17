@@ -49,6 +49,22 @@ class DebtEntity {
     );
   }
 
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'creditor': creditor,
+        'totalOwed': totalOwed,
+        'amountPaid': amountPaid,
+        'isCleared': isCleared,
+      };
+
+  factory DebtEntity.fromMap(Map<String, dynamic> map) => DebtEntity(
+        id: map['id'] as String,
+        creditor: map['creditor'] as String,
+        totalOwed: (map['totalOwed'] as num).toDouble(),
+        amountPaid: (map['amountPaid'] as num).toDouble(),
+        isCleared: map['isCleared'] as bool? ?? false,
+      );
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||

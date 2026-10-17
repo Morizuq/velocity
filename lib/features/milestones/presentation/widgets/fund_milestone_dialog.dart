@@ -98,9 +98,6 @@ class _FundMilestoneDialogState extends State<FundMilestoneDialog> {
               decoration: BoxDecoration(
                 color: brandColors.milestone.withValues(alpha: 0.1),
                 borderRadius: AppBorderRadius.allM,
-                border: Border.all(
-                  color: brandColors.milestone.withValues(alpha: 0.3),
-                ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -204,11 +201,6 @@ class _AllocationChip extends StatelessWidget {
               ? brandColors.milestone.withValues(alpha: 0.15)
               : theme.colorScheme.surfaceContainerHigh,
           borderRadius: AppBorderRadius.pill,
-          border: Border.all(
-            color: highlight
-                ? brandColors.milestone.withValues(alpha: 0.4)
-                : theme.colorScheme.outlineVariant,
-          ),
         ),
         child: Text(
           label,

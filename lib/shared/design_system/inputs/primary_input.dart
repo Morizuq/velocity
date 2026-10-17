@@ -66,10 +66,7 @@ class PrimaryInput extends StatelessWidget {
             fillColor: theme.colorScheme.onSurface.withValues(alpha: 0.05),
             enabledBorder: OutlineInputBorder(
               borderRadius: AppBorderRadius.allM,
-              borderSide: BorderSide(
-                color: theme.colorScheme.outline.withValues(alpha: 0.2),
-                width: 1,
-              ),
+              borderSide: BorderSide.none,
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: AppBorderRadius.allM,

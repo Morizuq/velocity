@@ -49,6 +49,22 @@ class MilestoneEntity {
     );
   }
 
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'title': title,
+        'targetAmount': targetAmount,
+        'currentAmount': currentAmount,
+        'isCompleted': isCompleted,
+      };
+
+  factory MilestoneEntity.fromMap(Map<String, dynamic> map) => MilestoneEntity(
+        id: map['id'] as String,
+        title: map['title'] as String,
+        targetAmount: (map['targetAmount'] as num).toDouble(),
+        currentAmount: (map['currentAmount'] as num).toDouble(),
+        isCompleted: map['isCompleted'] as bool? ?? false,
+      );
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||

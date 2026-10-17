@@ -98,9 +98,6 @@ class _LogPaymentDialogState extends State<LogPaymentDialog> {
               decoration: BoxDecoration(
                 color: brandColors.debt.withValues(alpha: 0.1),
                 borderRadius: AppBorderRadius.allM,
-                border: Border.all(
-                  color: brandColors.debt.withValues(alpha: 0.3),
-                ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -209,11 +206,6 @@ class _QuickChip extends StatelessWidget {
               ? brandColors.progress.withValues(alpha: 0.15)
               : theme.colorScheme.surfaceContainerHigh,
           borderRadius: AppBorderRadius.pill,
-          border: Border.all(
-            color: highlight
-                ? brandColors.progress.withValues(alpha: 0.4)
-                : theme.colorScheme.outlineVariant,
-          ),
         ),
         child: Text(
           label,
