@@ -28,7 +28,7 @@ class DefaultFirebaseOptions {
     appId: '1:871739103993:web:66c1133be99fd0c71ba028',
     messagingSenderId: '871739103993',
     projectId: 'velocity-18955',
-    authDomain: 'velocity-18955.firebaseapp.com',
+    authDomain: 'velocity.morizuq.dev',
     storageBucket: 'velocity-18955.firebasestorage.app',
     measurementId: 'G-NW8VXK1JNH',
   );

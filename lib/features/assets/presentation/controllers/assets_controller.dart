@@ -1,14 +1,46 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/storage/shared_prefs_storage.dart';
+import '../../../../core/sync/firestore_sync_service.dart';
+import '../../../auth/domain/entities/user_entity.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../domain/entities/asset_entity.dart';
 
-/// State notifier managing high-value long-term wealth asset goals with local persistence.
+/// State notifier managing high-value long-term wealth asset goals, local persistence,
+/// and live cloud synchronization across devices.
 class AssetsController extends Notifier<List<AssetEntity>> {
   static const _storageKey = 'velocity_assets';
+  StreamSubscription<List<AssetEntity>>? _firestoreSub;
+  String? _currentUid;
 
   @override
   List<AssetEntity> build() {
+    ref.onDispose(() {
+      _firestoreSub?.cancel();
+    });
+
+    final localAssets = _loadLocal();
+
+    // Listen for auth state transitions
+    ref.listen<AsyncValue<UserEntity?>>(authStateChangesProvider, (prev, next) {
+      final user = next.asData?.value;
+      if (user?.id != _currentUid) {
+        _currentUid = user?.id;
+        _onAuthChanged(user?.id);
+      }
+    });
+
+    final initialUser = ref.read(authStateChangesProvider).asData?.value;
+    _currentUid = initialUser?.id;
+    if (_currentUid != null) {
+      Future.microtask(() => _onAuthChanged(_currentUid));
+    }
+
+    return localAssets;
+  }
+
+  List<AssetEntity> _loadLocal() {
     try {
       final storage = ref.watch(storageServiceProvider);
       final raw = storage.getString(_storageKey);
@@ -19,16 +51,39 @@ class AssetsController extends Notifier<List<AssetEntity>> {
             .toList();
       }
     } catch (_) {}
-
     return const [];
   }
 
-  void _persist(List<AssetEntity> updated) {
+  void _onAuthChanged(String? uid) {
+    _firestoreSub?.cancel();
+    _firestoreSub = null;
+
+    if (uid == null) return;
+
+    final syncService = ref.read(firestoreSyncServiceProvider);
+
+    if (state.isNotEmpty) {
+      syncService.syncAssets(uid, state);
+    }
+
+    _firestoreSub = syncService.watchAssets(uid).listen((remoteAssets) {
+      if (remoteAssets.isNotEmpty || state.isEmpty) {
+        state = remoteAssets;
+        _persist(remoteAssets, pushToCloud: false);
+      }
+    });
+  }
+
+  void _persist(List<AssetEntity> updated, {bool pushToCloud = true}) {
     try {
       final storage = ref.read(storageServiceProvider);
       final encoded = jsonEncode(updated.map((a) => a.toMap()).toList());
       storage.setString(_storageKey, encoded);
     } catch (_) {}
+
+    if (pushToCloud && _currentUid != null) {
+      ref.read(firestoreSyncServiceProvider).syncAssets(_currentUid!, updated);
+    }
   }
 
   /// Allocates or adjusts capital towards long-term asset acquisition.
@@ -92,7 +147,9 @@ class AssetsController extends Notifier<List<AssetEntity>> {
         if (asset.id == assetId)
           asset.copyWith(
             isCompleted: !asset.isCompleted,
-            currentAmount: !asset.isCompleted ? asset.targetAmount : asset.currentAmount,
+            currentAmount: !asset.isCompleted
+                ? asset.targetAmount
+                : asset.currentAmount,
           )
         else
           asset,
@@ -119,27 +176,46 @@ class AssetsController extends Notifier<List<AssetEntity>> {
     _persist(updated);
   }
 
-  /// Deletes an asset.
+  /// Deletes an asset goal from local storage and Cloud Firestore.
   void deleteAsset(String assetId) {
     final updated = state.where((a) => a.id != assetId).toList();
     state = updated;
-    _persist(updated);
+    _persist(updated, pushToCloud: false);
+    if (_currentUid != null) {
+      ref.read(firestoreSyncServiceProvider).deleteAsset(_currentUid!, assetId);
+    }
   }
 }
 
 final assetsControllerProvider =
     NotifierProvider<AssetsController, List<AssetEntity>>(
-  AssetsController.new,
-);
+      AssetsController.new,
+    );
 
-/// Provider computing overarching total asset portfolio target.
-final totalAssetTargetProvider = Provider<double>((ref) {
+/// Provider computing total target valuation across all logged long-term assets.
+final totalAssetValuationTargetProvider = Provider<double>((ref) {
   final assets = ref.watch(assetsControllerProvider);
   return assets.fold<double>(0.0, (sum, a) => sum + a.targetAmount);
 });
+final totalAssetTargetProvider = totalAssetValuationTargetProvider;
 
-/// Provider computing overarching accumulated asset capital.
-final totalAssetSavedProvider = Provider<double>((ref) {
+/// Provider computing total secured capital accumulated across all wealth goals.
+final totalCapitalSecuredProvider = Provider<double>((ref) {
   final assets = ref.watch(assetsControllerProvider);
   return assets.fold<double>(0.0, (sum, a) => sum + a.currentAmount);
+});
+final totalAssetSavedProvider = totalCapitalSecuredProvider;
+
+/// Provider returning the total count of registered asset goals.
+final activeAssetCountProvider = Provider<int>((ref) {
+  final assets = ref.watch(assetsControllerProvider);
+  return assets.length;
+});
+
+/// Overall wealth progression ratio across all recorded long-term assets.
+final overallAssetVelocityRatioProvider = Provider<double>((ref) {
+  final target = ref.watch(totalAssetValuationTargetProvider);
+  final secured = ref.watch(totalCapitalSecuredProvider);
+  if (target <= 0) return 0.0;
+  return (secured / target).clamp(0.0, 1.0);
 });

@@ -1,14 +1,46 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/storage/shared_prefs_storage.dart';
+import '../../../../core/sync/firestore_sync_service.dart';
+import '../../../auth/domain/entities/user_entity.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../domain/entities/debt_entity.dart';
 
-/// State notifier managing clearance debts, payments, and local database persistence.
+/// State notifier managing clearance debts, payments, local database persistence,
+/// and live cloud synchronization across devices.
 class ClearanceController extends Notifier<List<DebtEntity>> {
   static const _storageKey = 'velocity_clearance_debts';
+  StreamSubscription<List<DebtEntity>>? _firestoreSub;
+  String? _currentUid;
 
   @override
   List<DebtEntity> build() {
+    ref.onDispose(() {
+      _firestoreSub?.cancel();
+    });
+
+    final localDebts = _loadLocal();
+
+    // Listen for auth state transitions (sign in, sign out, switch account)
+    ref.listen<AsyncValue<UserEntity?>>(authStateChangesProvider, (prev, next) {
+      final user = next.asData?.value;
+      if (user?.id != _currentUid) {
+        _currentUid = user?.id;
+        _onAuthChanged(user?.id);
+      }
+    });
+
+    final initialUser = ref.read(authStateChangesProvider).asData?.value;
+    _currentUid = initialUser?.id;
+    if (_currentUid != null) {
+      Future.microtask(() => _onAuthChanged(_currentUid));
+    }
+
+    return localDebts;
+  }
+
+  List<DebtEntity> _loadLocal() {
     try {
       final storage = ref.watch(storageServiceProvider);
       final raw = storage.getString(_storageKey);
@@ -19,16 +51,40 @@ class ClearanceController extends Notifier<List<DebtEntity>> {
             .toList();
       }
     } catch (_) {}
-
     return const [];
   }
 
-  void _persist(List<DebtEntity> updated) {
+  void _onAuthChanged(String? uid) {
+    _firestoreSub?.cancel();
+    _firestoreSub = null;
+
+    if (uid == null) return;
+
+    final syncService = ref.read(firestoreSyncServiceProvider);
+
+    // If local state had items created before login, seed remote collection
+    if (state.isNotEmpty) {
+      syncService.syncDebts(uid, state);
+    }
+
+    _firestoreSub = syncService.watchDebts(uid).listen((remoteDebts) {
+      if (remoteDebts.isNotEmpty || state.isEmpty) {
+        state = remoteDebts;
+        _persist(remoteDebts, pushToCloud: false);
+      }
+    });
+  }
+
+  void _persist(List<DebtEntity> updated, {bool pushToCloud = true}) {
     try {
       final storage = ref.read(storageServiceProvider);
       final encoded = jsonEncode(updated.map((d) => d.toMap()).toList());
       storage.setString(_storageKey, encoded);
     } catch (_) {}
+
+    if (pushToCloud && _currentUid != null) {
+      ref.read(firestoreSyncServiceProvider).syncDebts(_currentUid!, updated);
+    }
   }
 
   /// Deducts an incoming payment from the target debt.
@@ -83,11 +139,14 @@ class ClearanceController extends Notifier<List<DebtEntity>> {
     _persist(updated);
   }
 
-  /// Deletes a debt item from local storage.
+  /// Deletes a debt item from local storage and Cloud Firestore.
   void deleteDebt(String debtId) {
     final updated = state.where((d) => d.id != debtId).toList();
     state = updated;
-    _persist(updated);
+    _persist(updated, pushToCloud: false);
+    if (_currentUid != null) {
+      ref.read(firestoreSyncServiceProvider).deleteDebt(_currentUid!, debtId);
+    }
   }
 }
 
