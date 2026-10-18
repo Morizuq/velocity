@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../../../shared/design_system/buttons/primary_button.dart';
 import '../../../../shared/design_system/inputs/currency_amount_input.dart';
 import '../../../../shared/design_system/inputs/primary_input.dart';
@@ -9,7 +10,12 @@ import '../../../../shared/design_system/tokens/brand_colors.dart';
 
 /// Modal dialog for recording a new debt or due account in Clearance bucket.
 class AddDebtDialog extends StatefulWidget {
-  final void Function(String creditor, double totalOwed, double initialPaid) onAddConfirmed;
+  final void Function(
+    String creditor,
+    double totalOwed,
+    double initialPaid,
+    DateTime? dueDate,
+  ) onAddConfirmed;
 
   const AddDebtDialog({super.key, required this.onAddConfirmed});
 
@@ -21,6 +27,7 @@ class _AddDebtDialogState extends State<AddDebtDialog> {
   final _creditorController = TextEditingController();
   final _totalController = TextEditingController();
   final _paidController = TextEditingController();
+  DateTime? _selectedDueDate;
   String? _errorMessage;
 
   @override
@@ -31,10 +38,24 @@ class _AddDebtDialogState extends State<AddDebtDialog> {
     super.dispose();
   }
 
+  Future<void> _pickDueDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDueDate ?? now.add(const Duration(days: 30)),
+      firstDate: now.subtract(const Duration(days: 365)),
+      lastDate: now.add(const Duration(days: 365 * 10)),
+    );
+    if (picked != null) {
+      setState(() => _selectedDueDate = picked);
+    }
+  }
+
   void _submit() {
     final creditor = _creditorController.text.trim();
     final total = double.tryParse(_totalController.text.replaceAll(',', ''));
-    final paid = double.tryParse(_paidController.text.replaceAll(',', '')) ?? 0.0;
+    final paid =
+        double.tryParse(_paidController.text.replaceAll(',', '')) ?? 0.0;
 
     if (creditor.isEmpty) {
       setState(() => _errorMessage = 'Please enter creditor or party name');
@@ -45,7 +66,7 @@ class _AddDebtDialogState extends State<AddDebtDialog> {
       return;
     }
 
-    widget.onAddConfirmed(creditor, total, paid);
+    widget.onAddConfirmed(creditor, total, paid, _selectedDueDate);
     Navigator.of(context).pop();
   }
 
@@ -102,6 +123,63 @@ class _AddDebtDialogState extends State<AddDebtDialog> {
                 hintText: 'e.g. 20,000',
                 controller: _paidController,
                 prefixIcon: const Icon(Icons.payments_outlined),
+              ),
+              AppSpacing.vM,
+              InkWell(
+                onTap: _pickDueDate,
+                borderRadius: AppBorderRadius.allM,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.m,
+                    vertical: AppSpacing.s + 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: brandColors.subtle,
+                    borderRadius: AppBorderRadius.allM,
+                    border: Border.all(
+                      color: _selectedDueDate != null
+                          ? brandColors.debt.withValues(alpha: 0.5)
+                          : theme.dividerColor.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_today_rounded,
+                        size: 18,
+                        color: _selectedDueDate != null
+                            ? brandColors.debt
+                            : theme.colorScheme.onSurfaceVariant,
+                      ),
+                      AppSpacing.hS,
+                      Expanded(
+                        child: Text(
+                          _selectedDueDate != null
+                              ? 'Due Date: ${DateFormat.yMMMd().format(_selectedDueDate!)}'
+                              : 'Set Due Date (Optional)',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: _selectedDueDate != null
+                                ? theme.colorScheme.onSurface
+                                : theme.colorScheme.onSurfaceVariant
+                                    .withValues(alpha: 0.7),
+                            fontWeight: _selectedDueDate != null
+                                ? AppFontWeight.semiBold
+                                : AppFontWeight.regular,
+                          ),
+                        ),
+                      ),
+                      if (_selectedDueDate != null)
+                        GestureDetector(
+                          onTap: () => setState(() => _selectedDueDate = null),
+                          child: Icon(
+                            Icons.close_rounded,
+                            size: 18,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
               if (_errorMessage != null) ...[
                 AppSpacing.vS,

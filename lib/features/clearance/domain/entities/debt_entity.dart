@@ -8,6 +8,7 @@ class DebtEntity {
   final double totalOwed;
   final double amountPaid;
   final bool isCleared;
+  final DateTime? dueDate;
 
   const DebtEntity({
     required this.id,
@@ -15,6 +16,7 @@ class DebtEntity {
     required this.totalOwed,
     required this.amountPaid,
     this.isCleared = false,
+    this.dueDate,
   });
 
   /// Remaining unpaid balance.
@@ -29,16 +31,39 @@ class DebtEntity {
   /// Percentage completed formatted as integer.
   int get progressPercentage => (progressRatio * 100).round();
 
+  /// Whether a due date is specified.
+  bool get hasDueDate => dueDate != null;
+
+  /// Whether the debt is past its due date and still uncleared.
+  bool get isOverdue =>
+      hasDueDate && !isCleared && dueDate!.isBefore(DateTime.now());
+
+  /// Whether the debt is due within the next 7 days.
+  bool get isDueSoon {
+    if (!hasDueDate || isCleared || isOverdue) return false;
+    final diff = dueDate!.difference(DateTime.now()).inDays;
+    return diff >= 0 && diff <= 7;
+  }
+
+  /// Days remaining until due date.
+  int? get daysUntilDue {
+    if (!hasDueDate) return null;
+    return dueDate!.difference(DateTime.now()).inDays;
+  }
+
   DebtEntity copyWith({
     String? id,
     String? creditor,
     double? totalOwed,
     double? amountPaid,
     bool? isCleared,
+    DateTime? dueDate,
+    bool clearDueDate = false,
   }) {
     final updatedPaid = amountPaid ?? this.amountPaid;
     final updatedTotal = totalOwed ?? this.totalOwed;
-    final automaticallyCleared = updatedPaid >= updatedTotal && updatedTotal > 0;
+    final automaticallyCleared =
+        updatedPaid >= updatedTotal && updatedTotal > 0;
 
     return DebtEntity(
       id: id ?? this.id,
@@ -46,24 +71,29 @@ class DebtEntity {
       totalOwed: updatedTotal,
       amountPaid: updatedPaid,
       isCleared: isCleared ?? automaticallyCleared,
+      dueDate: clearDueDate ? null : (dueDate ?? this.dueDate),
     );
   }
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'creditor': creditor,
-        'totalOwed': totalOwed,
-        'amountPaid': amountPaid,
-        'isCleared': isCleared,
-      };
+    'id': id,
+    'creditor': creditor,
+    'totalOwed': totalOwed,
+    'amountPaid': amountPaid,
+    'isCleared': isCleared,
+    'dueDate': dueDate?.toIso8601String(),
+  };
 
   factory DebtEntity.fromMap(Map<String, dynamic> map) => DebtEntity(
-        id: map['id'] as String,
-        creditor: map['creditor'] as String,
-        totalOwed: (map['totalOwed'] as num).toDouble(),
-        amountPaid: (map['amountPaid'] as num).toDouble(),
-        isCleared: map['isCleared'] as bool? ?? false,
-      );
+    id: map['id'] as String,
+    creditor: map['creditor'] as String,
+    totalOwed: (map['totalOwed'] as num).toDouble(),
+    amountPaid: (map['amountPaid'] as num).toDouble(),
+    isCleared: map['isCleared'] as bool? ?? false,
+    dueDate: map['dueDate'] != null
+        ? DateTime.tryParse(map['dueDate'] as String)
+        : null,
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -74,8 +104,10 @@ class DebtEntity {
           creditor == other.creditor &&
           totalOwed == other.totalOwed &&
           amountPaid == other.amountPaid &&
-          isCleared == other.isCleared;
+          isCleared == other.isCleared &&
+          dueDate == other.dueDate;
 
   @override
-  int get hashCode => Object.hash(id, creditor, totalOwed, amountPaid, isCleared);
+  int get hashCode =>
+      Object.hash(id, creditor, totalOwed, amountPaid, isCleared, dueDate);
 }

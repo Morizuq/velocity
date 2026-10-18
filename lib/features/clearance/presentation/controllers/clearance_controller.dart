@@ -110,6 +110,7 @@ class ClearanceController extends Notifier<List<DebtEntity>> {
     required String creditor,
     required double totalOwed,
     double initialPaid = 0.0,
+    DateTime? dueDate,
   }) {
     final newDebt = DebtEntity(
       id: 'debt_${DateTime.now().millisecondsSinceEpoch}',
@@ -117,8 +118,22 @@ class ClearanceController extends Notifier<List<DebtEntity>> {
       totalOwed: totalOwed,
       amountPaid: initialPaid,
       isCleared: initialPaid >= totalOwed && totalOwed > 0,
+      dueDate: dueDate,
     );
     final updated = [...state, newDebt];
+    state = updated;
+    _persist(updated);
+  }
+
+  /// Updates or clears the due date for an existing debt.
+  void updateDueDate(String debtId, DateTime? dueDate) {
+    final updated = [
+      for (final debt in state)
+        if (debt.id == debtId)
+          debt.copyWith(dueDate: dueDate, clearDueDate: dueDate == null)
+        else
+          debt,
+    ];
     state = updated;
     _persist(updated);
   }

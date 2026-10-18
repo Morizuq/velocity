@@ -226,14 +226,14 @@ class AssetVelocityTracker extends ConsumerWidget {
                 return Padding(
                   key: ValueKey(asset.id),
                   padding: const EdgeInsets.only(bottom: AppSpacing.s),
-                  child: ReorderableDelayedDragStartListener(
-                    index: index,
-                    child: AssetGoalTile(
-                      asset: asset,
-                      dragHandle: ReorderableDragStartListener(
-                        index: index,
-                        child: MouseRegion(
-                          cursor: SystemMouseCursors.grab,
+                  child: AssetGoalTile(
+                    asset: asset,
+                    dragHandle: ReorderableDragStartListener(
+                      index: index,
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.grab,
+                        child: Tooltip(
+                          message: 'Drag to reorder',
                           child: Padding(
                             padding: const EdgeInsets.only(
                               right: AppSpacing.xxs,
@@ -242,14 +242,14 @@ class AssetVelocityTracker extends ConsumerWidget {
                               Icons.drag_indicator_rounded,
                               size: 16,
                               color: theme.colorScheme.onSurfaceVariant
-                                  .withValues(alpha: 0.4),
+                                  .withValues(alpha: 0.5),
                             ),
                           ),
                         ),
                       ),
-                      onTap: () =>
-                          _showManageAssetDialog(context, ref, asset),
                     ),
+                    onTap: () =>
+                        _showManageAssetDialog(context, ref, asset),
                   ),
                 );
               },

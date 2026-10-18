@@ -111,5 +111,34 @@ void main() {
       expect(reordered[1].title, equals('Index Fund'));
       expect(reordered[2].title, equals('Real Estate'));
     });
+
+    test('ClearanceController preserves optional dueDate and allows updating it', () {
+      final notifier = container.read(clearanceControllerProvider.notifier);
+      final dueDate = DateTime.now().add(const Duration(days: 5));
+      notifier.addDebt(
+        creditor: 'Due Card',
+        totalOwed: 5000,
+        dueDate: dueDate,
+      );
+
+      final debts = container.read(clearanceControllerProvider);
+      final debt = debts.firstWhere((d) => d.creditor == 'Due Card');
+      expect(debt.hasDueDate, isTrue);
+      expect(debt.isDueSoon, isTrue);
+      expect(debt.isOverdue, isFalse);
+
+      final newDueDate = DateTime.now().subtract(const Duration(days: 2));
+      notifier.updateDueDate(debt.id, newDueDate);
+
+      final updatedDebts = container.read(clearanceControllerProvider);
+      final updatedDebt = updatedDebts.firstWhere((d) => d.id == debt.id);
+      expect(updatedDebt.isOverdue, isTrue);
+      expect(updatedDebt.isDueSoon, isFalse);
+
+      // Clear due date
+      notifier.updateDueDate(debt.id, null);
+      final clearedDebt = container.read(clearanceControllerProvider).firstWhere((d) => d.id == debt.id);
+      expect(clearedDebt.hasDueDate, isFalse);
+    });
   });
 }

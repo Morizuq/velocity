@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../../../shared/design_system/tokens/app_border_radius.dart';
 import '../../../../shared/design_system/tokens/app_font_weight.dart';
 import '../../../../shared/design_system/tokens/app_icon_size.dart';
@@ -28,10 +29,8 @@ class DebtCard extends StatelessWidget {
   void _showPaymentDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (ctx) => LogPaymentDialog(
-        debt: debt,
-        onPaymentConfirmed: onLogPayment,
-      ),
+      builder: (ctx) =>
+          LogPaymentDialog(debt: debt, onPaymentConfirmed: onLogPayment),
     );
   }
 
@@ -58,7 +57,8 @@ class DebtCard extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.m),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min, // Critical: Size to content without artificial empty voids
+        mainAxisSize: MainAxisSize
+            .min, // Critical: Size to content without artificial empty voids
         children: [
           // Header with Creditor Name and Status Pill
           Row(
@@ -67,10 +67,7 @@ class DebtCard extends StatelessWidget {
               Expanded(
                 child: Row(
                   children: [
-                    if (dragHandle != null) ...[
-                      dragHandle!,
-                      AppSpacing.hXS,
-                    ],
+                    if (dragHandle != null) ...[dragHandle!, AppSpacing.hXS],
                     Container(
                       width: 32,
                       height: 32,
@@ -103,18 +100,85 @@ class DebtCard extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          Text(
-                            debt.isCleared ? 'Cleared' : 'Pending Clearance',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: debt.isCleared
-                                  ? brandColors.progress
-                                  : theme.colorScheme.onSurfaceVariant
-                                      .withValues(alpha: 0.7),
-                              fontWeight: AppFontWeight.medium,
-                              fontSize: 11,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                          Row(
+                            children: [
+                              Text(
+                                debt.isCleared
+                                    ? 'Cleared'
+                                    : 'Pending Clearance',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: debt.isCleared
+                                      ? brandColors.progress
+                                      : theme.colorScheme.onSurfaceVariant
+                                            .withValues(alpha: 0.7),
+                                  fontWeight: AppFontWeight.medium,
+                                  fontSize: 11,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (debt.hasDueDate) ...[
+                                Text(
+                                  ' • ',
+                                  style: TextStyle(
+                                    color: theme.colorScheme.onSurfaceVariant
+                                        .withValues(alpha: 0.4),
+                                    fontSize: 11,
+                                  ),
+                                ),
+                                Icon(
+                                  debt.isOverdue
+                                      ? Icons.error_outline_rounded
+                                      : (debt.isDueSoon
+                                            ? Icons.schedule_rounded
+                                            : Icons.event_outlined),
+                                  size: 12,
+                                  color: debt.isCleared
+                                      ? theme.colorScheme.onSurfaceVariant
+                                            .withValues(alpha: 0.5)
+                                      : (debt.isOverdue
+                                            ? theme.colorScheme.error
+                                            : (debt.isDueSoon
+                                                  ? brandColors.debt
+                                                  : theme
+                                                        .colorScheme
+                                                        .onSurfaceVariant
+                                                        .withValues(
+                                                          alpha: 0.7,
+                                                        ))),
+                                ),
+                                AppSpacing.hXXS,
+                                Text(
+                                  debt.isCleared
+                                      ? 'Due ${DateFormat.MMMd().format(debt.dueDate!)}'
+                                      : (debt.isOverdue
+                                            ? 'Overdue (${DateFormat.MMMd().format(debt.dueDate!)})'
+                                            : (debt.isDueSoon
+                                                  ? 'Due in ${debt.daysUntilDue}d'
+                                                  : 'Due ${DateFormat.MMMd().format(debt.dueDate!)}')),
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: debt.isCleared
+                                        ? theme.colorScheme.onSurfaceVariant
+                                              .withValues(alpha: 0.5)
+                                        : (debt.isOverdue
+                                              ? theme.colorScheme.error
+                                              : (debt.isDueSoon
+                                                    ? brandColors.debt
+                                                    : theme
+                                                          .colorScheme
+                                                          .onSurfaceVariant
+                                                          .withValues(
+                                                            alpha: 0.7,
+                                                          ))),
+                                    fontWeight:
+                                        (debt.isOverdue || debt.isDueSoon)
+                                        ? AppFontWeight.bold
+                                        : AppFontWeight.medium,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ],
                       ),
@@ -137,10 +201,14 @@ class DebtCard extends StatelessWidget {
                       borderRadius: AppBorderRadius.pill,
                     ),
                     child: Text(
-                      debt.isCleared ? 'CLEARED' : '${debt.progressPercentage}% PAID',
+                      debt.isCleared
+                          ? 'CLEARED'
+                          : '${debt.progressPercentage}% PAID',
                       style: theme.textTheme.labelSmall?.copyWith(
                         fontWeight: AppFontWeight.bold,
-                        color: debt.isCleared ? brandColors.progress : brandColors.debt,
+                        color: debt.isCleared
+                            ? brandColors.progress
+                            : brandColors.debt,
                         fontSize: 10,
                       ),
                     ),
@@ -152,7 +220,9 @@ class DebtCard extends StatelessWidget {
                       visualDensity: VisualDensity.compact,
                       tooltip: 'Remove',
                       onPressed: onDelete,
-                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.5,
+                      ),
                     ),
                   ],
                 ],
@@ -172,8 +242,9 @@ class DebtCard extends StatelessWidget {
                     Text(
                       'Remaining Due',
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant
-                            .withValues(alpha: 0.7),
+                        color: theme.colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.7,
+                        ),
                         fontSize: 11,
                       ),
                       maxLines: 1,
@@ -204,8 +275,9 @@ class DebtCard extends StatelessWidget {
                     Text(
                       'Total Initial',
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant
-                            .withValues(alpha: 0.7),
+                        color: theme.colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.7,
+                        ),
                         fontSize: 11,
                       ),
                       maxLines: 1,
@@ -250,9 +322,14 @@ class DebtCard extends StatelessWidget {
             children: [
               Expanded(
                 child: FilledButton.tonalIcon(
-                  onPressed: debt.isCleared ? null : () => _showPaymentDialog(context),
+                  onPressed: debt.isCleared
+                      ? null
+                      : () => _showPaymentDialog(context),
                   icon: const Icon(Icons.payment_rounded, size: 16),
-                  label: const Text('Log Payment', style: TextStyle(fontSize: 12)),
+                  label: const Text(
+                    'Log Payment',
+                    style: TextStyle(fontSize: 12),
+                  ),
                   style: FilledButton.styleFrom(
                     backgroundColor: isDark
                         ? const Color(0xFF1B2334)
@@ -261,7 +338,9 @@ class DebtCard extends StatelessWidget {
                     shape: const RoundedRectangleBorder(
                       borderRadius: AppBorderRadius.allM,
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs + 2),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppSpacing.xs + 2,
+                    ),
                   ),
                 ),
               ),
@@ -270,9 +349,13 @@ class DebtCard extends StatelessWidget {
                 tooltip: debt.isCleared ? 'Mark Active' : 'Mark Cleared',
                 onPressed: onToggleCleared,
                 icon: Icon(
-                  debt.isCleared ? Icons.undo_rounded : Icons.check_circle_outline_rounded,
+                  debt.isCleared
+                      ? Icons.undo_rounded
+                      : Icons.check_circle_outline_rounded,
                   size: 16,
-                  color: debt.isCleared ? theme.colorScheme.outline : brandColors.progress,
+                  color: debt.isCleared
+                      ? theme.colorScheme.outline
+                      : brandColors.progress,
                 ),
                 style: IconButton.styleFrom(
                   backgroundColor: isDark

@@ -122,50 +122,55 @@ class MilestonesBucketSection extends ConsumerWidget {
               return Padding(
                 key: ValueKey(milestone.id),
                 padding: const EdgeInsets.only(bottom: AppSpacing.m),
-                child: ReorderableDelayedDragStartListener(
-                  index: index,
-                  child: MilestoneCard(
-                    milestone: milestone,
-                    dragHandle: ReorderableDragStartListener(
-                      index: index,
-                      child: MouseRegion(
-                        cursor: SystemMouseCursors.grab,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.xxs,
+                child: MilestoneCard(
+                  milestone: milestone,
+                  dragHandle: ReorderableDragStartListener(
+                    index: index,
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.grab,
+                      child: Tooltip(
+                        message: 'Drag to reorder',
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.onSurface
+                                .withValues(alpha: 0.05),
+                            borderRadius: AppBorderRadius.allS,
                           ),
+                          alignment: Alignment.center,
                           child: Icon(
                             Icons.drag_indicator_rounded,
                             size: 18,
                             color: theme.colorScheme.onSurfaceVariant
-                                .withValues(alpha: 0.4),
+                                .withValues(alpha: 0.5),
                           ),
                         ),
                       ),
                     ),
-                    onAdjustDelta: (delta) {
-                      milestonesNotifier.adjustFunds(milestone.id, delta);
-                      if (delta > 0) {
-                        dashboardNotifier.deductCash(delta);
-                      } else {
-                        dashboardNotifier.addIncome(delta.abs());
-                      }
-                    },
-                    onSetExactTotal: (newTotal) {
-                      final diff = newTotal - milestone.currentAmount;
-                      milestonesNotifier.setMilestoneAmount(
-                        milestone.id,
-                        newTotal,
-                      );
-                      if (diff > 0) {
-                        dashboardNotifier.deductCash(diff);
-                      } else {
-                        dashboardNotifier.addIncome(diff.abs());
-                      }
-                    },
-                    onDelete: () =>
-                        milestonesNotifier.deleteMilestone(milestone.id),
                   ),
+                  onAdjustDelta: (delta) {
+                    milestonesNotifier.adjustFunds(milestone.id, delta);
+                    if (delta > 0) {
+                      dashboardNotifier.deductCash(delta);
+                    } else {
+                      dashboardNotifier.addIncome(delta.abs());
+                    }
+                  },
+                  onSetExactTotal: (newTotal) {
+                    final diff = newTotal - milestone.currentAmount;
+                    milestonesNotifier.setMilestoneAmount(
+                      milestone.id,
+                      newTotal,
+                    );
+                    if (diff > 0) {
+                      dashboardNotifier.deductCash(diff);
+                    } else {
+                      dashboardNotifier.addIncome(diff.abs());
+                    }
+                  },
+                  onDelete: () =>
+                      milestonesNotifier.deleteMilestone(milestone.id),
                 ),
               );
             },
