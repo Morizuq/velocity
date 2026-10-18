@@ -77,7 +77,9 @@ class DashboardController extends Notifier<double> {
     } catch (_) {}
 
     if (pushToCloud && _currentUid != null) {
-      ref.read(firestoreSyncServiceProvider).syncLiquidCash(_currentUid!, amount);
+      ref
+          .read(firestoreSyncServiceProvider)
+          .syncLiquidCash(_currentUid!, amount);
     }
   }
 
