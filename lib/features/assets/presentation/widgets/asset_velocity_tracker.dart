@@ -11,6 +11,7 @@ import '../../domain/entities/asset_entity.dart';
 import '../controllers/assets_controller.dart';
 import '../../../../shared/design_system/cards/velocity_empty_state_card.dart';
 import 'add_asset_dialog.dart';
+import 'asset_goal_tile.dart';
 import 'manage_asset_dialog.dart';
 
 /// Hero visual tracker that sits at the top of the dashboard showcasing long-term wealth assets.
@@ -88,7 +89,9 @@ class AssetVelocityTracker extends ConsumerWidget {
         ? (totalSaved / totalTarget).clamp(0.0, 1.0)
         : 0.0;
 
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOutCubic,
       decoration: BoxDecoration(
         color: brandColors.surfaceCard,
         borderRadius: AppBorderRadius.allXL,
@@ -107,186 +110,9 @@ class AssetVelocityTracker extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header badge, title, and Add Action
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isCompact = constraints.maxWidth < 460;
-              if (isCompact) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(AppSpacing.xs),
-                                decoration: BoxDecoration(
-                                  color: brandColors.accent.withValues(
-                                    alpha: 0.15,
-                                  ),
-                                  borderRadius: AppBorderRadius.allM,
-                                ),
-                                child: Icon(
-                                  Icons.auto_graph_rounded,
-                                  color: brandColors.accent,
-                                  size: AppIconSize.m,
-                                ),
-                              ),
-                              AppSpacing.hS,
-                              Expanded(
-                                child: Text(
-                                  'Long-Term Wealth Horizon',
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: AppFontWeight.bold,
-                                    letterSpacing: -0.2,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        AppSpacing.hS,
-                        IconButton.filledTonal(
-                          tooltip: 'Add Asset Goal',
-                          onPressed: () => _showAddAssetDialog(context, ref),
-                          icon: const Icon(
-                            Icons.add_rounded,
-                            size: AppIconSize.s,
-                          ),
-                          style: IconButton.styleFrom(
-                            backgroundColor: brandColors.subtle,
-                            foregroundColor: brandColors.accent,
-                          ),
-                        ),
-                      ],
-                    ),
-                    AppSpacing.vXS,
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Tier 1 Asset Progression',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        AppSpacing.hS,
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.s,
-                            vertical: AppSpacing.xxs,
-                          ),
-                          decoration: BoxDecoration(
-                            color: brandColors.accent.withValues(alpha: 0.12),
-                            borderRadius: AppBorderRadius.pill,
-                          ),
-                          child: Text(
-                            '${(overallProgress * 100).round()}% OF HORIZON',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              fontWeight: AppFontWeight.bold,
-                              color: brandColors.accent,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                );
-              }
-
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(AppSpacing.xs),
-                          decoration: BoxDecoration(
-                            color: brandColors.accent.withValues(alpha: 0.15),
-                            borderRadius: AppBorderRadius.allM,
-                          ),
-                          child: Icon(
-                            Icons.auto_graph_rounded,
-                            color: brandColors.accent,
-                            size: AppIconSize.m,
-                          ),
-                        ),
-                        AppSpacing.hS,
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Long-Term Wealth Horizon',
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: AppFontWeight.bold,
-                                  letterSpacing: -0.2,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              Text(
-                                'Tier 1 Asset Progression',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  AppSpacing.hS,
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.m,
-                          vertical: AppSpacing.xs,
-                        ),
-                        decoration: BoxDecoration(
-                          color: brandColors.accent.withValues(alpha: 0.12),
-                          borderRadius: AppBorderRadius.pill,
-                        ),
-                        child: Text(
-                          '${(overallProgress * 100).round()}% OF HORIZON',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            fontWeight: AppFontWeight.bold,
-                            color: brandColors.accent,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                      AppSpacing.hS,
-                      IconButton.filledTonal(
-                        tooltip: 'Add Asset Goal',
-                        onPressed: () => _showAddAssetDialog(context, ref),
-                        icon: const Icon(
-                          Icons.add_rounded,
-                          size: AppIconSize.s,
-                        ),
-                        style: IconButton.styleFrom(
-                          backgroundColor: brandColors.subtle,
-                          foregroundColor: brandColors.accent,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              );
-            },
+          _AssetTrackerHeader(
+            overallProgress: overallProgress,
+            onAdd: () => _showAddAssetDialog(context, ref),
           ),
           AppSpacing.vL,
 
@@ -354,15 +180,13 @@ class AssetVelocityTracker extends ConsumerWidget {
           ),
           AppSpacing.vM,
 
-          // Glowing overarching progress bar
+          // Overarching progress bar with token-based continuous color interpolation
           ClipRRect(
             borderRadius: AppBorderRadius.pill,
             child: LinearProgressIndicator(
               value: overallProgress,
               minHeight: 8,
-              backgroundColor: isDark
-                  ? const Color(0xFF1B2333)
-                  : const Color(0xFFE2E8F0),
+              backgroundColor: theme.colorScheme.surfaceContainerHigh,
               valueColor: AlwaysStoppedAnimation<Color>(brandColors.accent),
             ),
           ),
@@ -393,141 +217,159 @@ class AssetVelocityTracker extends ConsumerWidget {
                   spacing: AppSpacing.m,
                   runSpacing: AppSpacing.m,
                   children: assets.map((asset) {
-                  final isCompleted = asset.isCompleted;
-                  final badgeColor = isCompleted
-                      ? brandColors.progress
-                      : brandColors.accent;
-
-                  return SizedBox(
-                    width: cardWidth,
-                    child: Material(
-                      color: Colors.transparent,
-                      borderRadius: AppBorderRadius.allM,
-                      child: InkWell(
-                        borderRadius: AppBorderRadius.allM,
+                    return SizedBox(
+                      width: cardWidth,
+                      child: AssetGoalTile(
+                        asset: asset,
                         onTap: () =>
                             _showManageAssetDialog(context, ref, asset),
-                        hoverColor: brandColors.accent.withValues(alpha: 0.05),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.m,
-                            vertical: AppSpacing.s + 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? const Color(0xFF161E2E)
-                                : const Color(0xFFF8FAFC),
-                            borderRadius: AppBorderRadius.allM,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    isCompleted
-                                        ? Icons.verified_rounded
-                                        : (asset.title.contains('Land')
-                                              ? Icons.landscape_rounded
-                                              : Icons.laptop_mac_rounded),
-                                    size: AppIconSize.s,
-                                    color: badgeColor,
-                                  ),
-                                  AppSpacing.hS,
-                                  Expanded(
-                                    child: Text(
-                                      asset.title,
-                                      style: theme.textTheme.bodyMedium
-                                          ?.copyWith(
-                                            fontWeight: AppFontWeight.bold,
-                                          ),
-                                      maxLines: 2,
-                                    ),
-                                  ),
-                                  AppSpacing.hS,
-                                  Text(
-                                    isCompleted
-                                        ? '100%'
-                                        : '${asset.progressPercentage}%',
-                                    style: theme.textTheme.labelMedium
-                                        ?.copyWith(
-                                          fontWeight: AppFontWeight.bold,
-                                          color: badgeColor,
-                                        ),
-                                  ),
-                                  AppSpacing.hXS,
-                                  Icon(
-                                    Icons.tune_rounded,
-                                    size: 14,
-                                    color: theme.colorScheme.onSurfaceVariant
-                                        .withValues(alpha: 0.5),
-                                  ),
-                                ],
-                              ),
-                              AppSpacing.vXS,
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(
-                                        left: 24.0,
-                                      ),
-                                      child: FittedBox(
-                                        fit: BoxFit.scaleDown,
-                                        alignment: Alignment.centerLeft,
-                                        child: Text(
-                                          '${FinancialNumberFormatter.format(asset.currentAmount)} / ${FinancialNumberFormatter.format(asset.targetAmount)}',
-                                          style: theme.textTheme.labelSmall
-                                              ?.copyWith(
-                                                color: theme
-                                                    .colorScheme
-                                                    .onSurfaceVariant,
-                                                fontSize: 11,
-                                              ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  if (isCompleted) ...[
-                                    AppSpacing.hS,
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: brandColors.progress.withValues(
-                                          alpha: 0.15,
-                                        ),
-                                        borderRadius: AppBorderRadius.pill,
-                                      ),
-                                      child: Text(
-                                        'ACQUIRED',
-                                        style: TextStyle(
-                                          fontSize: 9,
-                                          fontWeight: AppFontWeight.bold,
-                                          color: brandColors.progress,
-                                          letterSpacing: 0.5,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
                       ),
-                    ),
-                  );
-                }).toList(),
-              );
-            },
-          ),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
         ],
       ),
+    );
+  }
+}
+
+class _AssetTrackerHeader extends StatelessWidget {
+  final double overallProgress;
+  final VoidCallback onAdd;
+
+  const _AssetTrackerHeader({
+    required this.overallProgress,
+    required this.onAdd,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final brandColors = context.brandColors;
+
+    final badge = Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s + 2,
+        vertical: AppSpacing.xxs + 1,
+      ),
+      decoration: BoxDecoration(
+        color: brandColors.accent.withValues(alpha: 0.12),
+        borderRadius: AppBorderRadius.pill,
+      ),
+      child: Text(
+        '${(overallProgress * 100).round()}% OF HORIZON',
+        style: theme.textTheme.labelSmall?.copyWith(
+          fontWeight: AppFontWeight.bold,
+          color: brandColors.accent,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+
+    final addButton = IconButton.filledTonal(
+      tooltip: 'Add Asset Goal',
+      onPressed: onAdd,
+      icon: const Icon(Icons.add_rounded, size: AppIconSize.s),
+      style: IconButton.styleFrom(
+        backgroundColor: brandColors.subtle,
+        foregroundColor: brandColors.accent,
+      ),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 460;
+        final titleBlock = Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.xs),
+              decoration: BoxDecoration(
+                color: brandColors.accent.withValues(alpha: 0.15),
+                borderRadius: AppBorderRadius.allM,
+              ),
+              child: Icon(
+                Icons.auto_graph_rounded,
+                color: brandColors.accent,
+                size: AppIconSize.m,
+              ),
+            ),
+            AppSpacing.hS,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Long-Term Wealth Horizon',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: AppFontWeight.bold,
+                      letterSpacing: -0.2,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (!isCompact)
+                    Text(
+                      'Tier 1 Asset Progression',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
+            ),
+          ],
+        );
+
+        if (isCompact) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(child: titleBlock),
+                  AppSpacing.hS,
+                  addButton,
+                ],
+              ),
+              AppSpacing.vXS,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Tier 1 Asset Progression',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  AppSpacing.hS,
+                  badge,
+                ],
+              ),
+            ],
+          );
+        }
+
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(child: titleBlock),
+            AppSpacing.hS,
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [badge, AppSpacing.hS, addButton],
+            ),
+          ],
+        );
+      },
     );
   }
 }

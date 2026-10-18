@@ -48,7 +48,7 @@ class _FinancialVelocityDonutChartState
     final sections = isEmpty
         ? <PieChartSectionData>[
             PieChartSectionData(
-              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+              color: theme.colorScheme.surfaceContainerHigh,
               value: 1.0,
               title: '',
               radius: 18.0,
@@ -78,7 +78,9 @@ class _FinancialVelocityDonutChartState
               ),
           ];
 
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOutCubic,
       decoration: BoxDecoration(
         color: brandColors.surfaceCard,
         borderRadius: AppBorderRadius.allXL,

@@ -43,7 +43,9 @@ class DebtBurndownChart extends ConsumerWidget {
       double.infinity,
     );
 
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOutCubic,
       decoration: BoxDecoration(
         color: brandColors.surfaceCard,
         borderRadius: AppBorderRadius.allXL,

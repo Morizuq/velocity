@@ -31,8 +31,8 @@ class VelocityMetricCard extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     final content = AnimatedContainer(
-      duration: const Duration(milliseconds: 350),
-      curve: Curves.easeInOutCubic,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOutCubic,
       decoration: BoxDecoration(
         color: brandColors.surfaceCard,
         borderRadius: AppBorderRadius.allL,
