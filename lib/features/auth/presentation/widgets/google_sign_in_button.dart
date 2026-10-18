@@ -45,11 +45,19 @@ class _GoogleSignInButtonState extends ConsumerState<GoogleSignInButton> {
         final errStr = authState.error.toString();
         // Don't show scary error if user simply closed the popup
         if (!errStr.contains('popup-closed-by-user')) {
+          final String displayMessage;
+          if (errStr.contains('unauthorized-domain')) {
+            displayMessage =
+                'This domain is not authorized in Firebase Console (Authentication > Settings > Authorized domains).';
+          } else {
+            displayMessage = 'Sign-in failed: ${authState.error}';
+          }
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Sign-in failed: ${authState.error}'),
+              content: Text(displayMessage),
               backgroundColor: Colors.redAccent,
               behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 6),
             ),
           );
         }

@@ -8,7 +8,6 @@ import 'core/storage/secure_storage_service.dart';
 import 'core/storage/shared_prefs_storage.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_mode_notifier.dart';
-import 'shared/design_system/theme/circular_theme_reveal.dart';
 import 'features/auth/data/repositories/firebase_auth_repository.dart';
 import 'features/auth/domain/repositories/auth_repository.dart';
 import 'firebase_options.dart';
@@ -51,12 +50,10 @@ class MyApp extends StatelessWidget {
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: themeMode,
-          themeAnimationDuration: const Duration(milliseconds: 350),
-          themeAnimationCurve: Curves.easeInOutCubic,
+          themeAnimationDuration: const Duration(milliseconds: 200),
+          themeAnimationCurve: Curves.easeOutCubic,
           routerConfig: router,
-          builder: (context, child) {
-            return CircularThemeReveal(child: child ?? const SizedBox.shrink());
-          },
+          builder: (context, child) => child ?? const SizedBox.shrink(),
         );
       },
     );

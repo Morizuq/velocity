@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/theme/theme_mode_notifier.dart';
 import '../../../shared/design_system/tokens/app_border_radius.dart';
 import '../../../shared/design_system/tokens/app_font_weight.dart';
-import '../../../shared/design_system/tokens/app_icon_size.dart';
 import '../../../shared/design_system/tokens/app_responsive.dart';
 import '../../../shared/design_system/tokens/app_spacing.dart';
 import '../../../shared/design_system/tokens/brand_colors.dart';
 import '../../../shared/design_system/tokens/financial_number_formatter.dart';
 import '../../../shared/design_system/tokens/velocity_icon.dart';
 import '../../../shared/design_system/cards/velocity_empty_state_card.dart';
-import '../../../shared/design_system/theme/circular_theme_reveal.dart';
 import '../../assets/presentation/widgets/asset_velocity_tracker.dart';
 import '../../auth/presentation/widgets/user_profile_pill.dart';
 import '../../clearance/presentation/controllers/clearance_controller.dart';
@@ -22,6 +19,7 @@ import '../../milestones/presentation/widgets/milestone_card.dart';
 import 'controllers/dashboard_controller.dart';
 import 'widgets/debt_burndown_chart.dart';
 import 'widgets/financial_velocity_donut_chart.dart';
+import 'widgets/theme_mode_toggle.dart';
 import 'widgets/update_liquid_cash_dialog.dart';
 import 'widgets/velocity_metric_card.dart';
 
@@ -81,9 +79,6 @@ class DashboardPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final brandColors = context.brandColors;
-    final themeMode = ref.watch(themeModeProvider);
-    final isDark = themeMode == ThemeMode.dark;
-
     final liquidCash = ref.watch(dashboardControllerProvider);
     final dashboardNotifier = ref.read(dashboardControllerProvider.notifier);
 
@@ -166,104 +161,8 @@ class DashboardPage extends ConsumerWidget {
                       // Google Auth Profile Pill / Login CTA
                       const UserProfilePill(),
                       AppSpacing.hS,
-                      // Theme Mode Pill Toggle with Circular Cascade Reveal
-                      Builder(
-                        builder: (btnContext) {
-                          return Material(
-                            color: Colors.transparent,
-                            borderRadius: AppBorderRadius.pill,
-                            child: InkWell(
-                              onTap: () {
-                                final renderBox =
-                                    btnContext.findRenderObject() as RenderBox?;
-                                final focalPoint =
-                                    renderBox != null && renderBox.hasSize
-                                    ? renderBox.localToGlobal(
-                                        renderBox.size.center(Offset.zero),
-                                      )
-                                    : null;
-
-                                final reveal = CircularThemeReveal.of(
-                                  btnContext,
-                                );
-                                if (reveal != null) {
-                                  reveal.toggleTheme(focalPoint: focalPoint);
-                                } else {
-                                  ref
-                                      .read(themeModeProvider.notifier)
-                                      .toggleTheme();
-                                }
-                              },
-                              borderRadius: AppBorderRadius.pill,
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: isCompact
-                                      ? AppSpacing.s + 2
-                                      : AppSpacing.m,
-                                  vertical: AppSpacing.s - 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: brandColors.surfaceCard,
-                                  borderRadius: AppBorderRadius.pill,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: isDark
-                                          ? Colors.black.withValues(alpha: 0.2)
-                                          : const Color(0x06000000),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    AnimatedSwitcher(
-                                      duration: const Duration(
-                                        milliseconds: 350,
-                                      ),
-                                      transitionBuilder: (child, anim) =>
-                                          RotationTransition(
-                                            turns: anim,
-                                            child: FadeTransition(
-                                              opacity: anim,
-                                              child: child,
-                                            ),
-                                          ),
-                                      child: Icon(
-                                        isDark
-                                            ? Icons.light_mode_rounded
-                                            : Icons.dark_mode_rounded,
-                                        key: ValueKey<bool>(isDark),
-                                        size: AppIconSize.s - 2,
-                                        color: brandColors.accent,
-                                      ),
-                                    ),
-                                    if (!isCompact) ...[
-                                      AppSpacing.hS,
-                                      AnimatedSwitcher(
-                                        duration: const Duration(
-                                          milliseconds: 250,
-                                        ),
-                                        child: Text(
-                                          isDark ? 'LIGHT' : 'DARK',
-                                          key: ValueKey<bool>(isDark),
-                                          style: theme.textTheme.labelSmall
-                                              ?.copyWith(
-                                                fontWeight: AppFontWeight.bold,
-                                                letterSpacing: 0.8,
-                                                fontSize: 11,
-                                              ),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
+                      // Theme Mode Pill Toggle with Sliding Transition and Circular Cascade Reveal
+                      const ThemeModeToggle(),
                     ],
                   );
                 },

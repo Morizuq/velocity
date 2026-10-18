@@ -32,4 +32,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'velocity-18955.firebasestorage.app',
     measurementId: 'G-NW8VXK1JNH',
   );
+
 }
