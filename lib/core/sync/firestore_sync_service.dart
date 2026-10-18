@@ -41,9 +41,13 @@ class FirestoreSyncService {
     if (!_canSync) return const Stream.empty();
     try {
       return _userClearance(uid).snapshots().map((snapshot) {
-        return snapshot.docs
-            .map((doc) => DebtEntity.fromMap(doc.data()))
-            .toList();
+        final docs = snapshot.docs.toList();
+        docs.sort((a, b) {
+          final aOrder = a.data()['orderIndex'] as num? ?? 999999;
+          final bOrder = b.data()['orderIndex'] as num? ?? 999999;
+          return aOrder.compareTo(bOrder);
+        });
+        return docs.map((doc) => DebtEntity.fromMap(doc.data())).toList();
       });
     } catch (_) {
       return const Stream.empty();
@@ -55,8 +59,10 @@ class FirestoreSyncService {
     try {
       final batch = _db.batch();
       final col = _userClearance(uid);
-      for (final debt in debts) {
-        batch.set(col.doc(debt.id), debt.toMap(), SetOptions(merge: true));
+      for (int i = 0; i < debts.length; i++) {
+        final data = debts[i].toMap();
+        data['orderIndex'] = i;
+        batch.set(col.doc(debts[i].id), data, SetOptions(merge: true));
       }
       await batch.commit();
     } catch (_) {}
@@ -75,9 +81,13 @@ class FirestoreSyncService {
     if (!_canSync) return const Stream.empty();
     try {
       return _userMilestones(uid).snapshots().map((snapshot) {
-        return snapshot.docs
-            .map((doc) => MilestoneEntity.fromMap(doc.data()))
-            .toList();
+        final docs = snapshot.docs.toList();
+        docs.sort((a, b) {
+          final aOrder = a.data()['orderIndex'] as num? ?? 999999;
+          final bOrder = b.data()['orderIndex'] as num? ?? 999999;
+          return aOrder.compareTo(bOrder);
+        });
+        return docs.map((doc) => MilestoneEntity.fromMap(doc.data())).toList();
       });
     } catch (_) {
       return const Stream.empty();
@@ -92,12 +102,10 @@ class FirestoreSyncService {
     try {
       final batch = _db.batch();
       final col = _userMilestones(uid);
-      for (final milestone in milestones) {
-        batch.set(
-          col.doc(milestone.id),
-          milestone.toMap(),
-          SetOptions(merge: true),
-        );
+      for (int i = 0; i < milestones.length; i++) {
+        final data = milestones[i].toMap();
+        data['orderIndex'] = i;
+        batch.set(col.doc(milestones[i].id), data, SetOptions(merge: true));
       }
       await batch.commit();
     } catch (_) {}
@@ -116,9 +124,13 @@ class FirestoreSyncService {
     if (!_canSync) return const Stream.empty();
     try {
       return _userAssets(uid).snapshots().map((snapshot) {
-        return snapshot.docs
-            .map((doc) => AssetEntity.fromMap(doc.data()))
-            .toList();
+        final docs = snapshot.docs.toList();
+        docs.sort((a, b) {
+          final aOrder = a.data()['orderIndex'] as num? ?? 999999;
+          final bOrder = b.data()['orderIndex'] as num? ?? 999999;
+          return aOrder.compareTo(bOrder);
+        });
+        return docs.map((doc) => AssetEntity.fromMap(doc.data())).toList();
       });
     } catch (_) {
       return const Stream.empty();
@@ -130,8 +142,10 @@ class FirestoreSyncService {
     try {
       final batch = _db.batch();
       final col = _userAssets(uid);
-      for (final asset in assets) {
-        batch.set(col.doc(asset.id), asset.toMap(), SetOptions(merge: true));
+      for (int i = 0; i < assets.length; i++) {
+        final data = assets[i].toMap();
+        data['orderIndex'] = i;
+        batch.set(col.doc(assets[i].id), data, SetOptions(merge: true));
       }
       await batch.commit();
     } catch (_) {}

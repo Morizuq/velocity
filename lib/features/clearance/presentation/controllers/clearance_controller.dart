@@ -148,6 +148,18 @@ class ClearanceController extends Notifier<List<DebtEntity>> {
       ref.read(firestoreSyncServiceProvider).deleteDebt(_currentUid!, debtId);
     }
   }
+
+  /// Reorders debts when dragged and dropped, updating local and cloud sequence.
+  void reorder(int oldIndex, int newIndex) {
+    if (oldIndex < 0 || oldIndex >= state.length) return;
+    if (newIndex < 0 || newIndex >= state.length) return;
+    if (oldIndex == newIndex) return;
+    final updated = List<DebtEntity>.from(state);
+    final item = updated.removeAt(oldIndex);
+    updated.insert(newIndex, item);
+    state = updated;
+    _persist(updated);
+  }
 }
 
 final clearanceControllerProvider =

@@ -14,6 +14,7 @@ class DebtCard extends StatelessWidget {
   final ValueChanged<double> onLogPayment;
   final VoidCallback onToggleCleared;
   final VoidCallback? onDelete;
+  final Widget? dragHandle;
 
   const DebtCard({
     super.key,
@@ -21,6 +22,7 @@ class DebtCard extends StatelessWidget {
     required this.onLogPayment,
     required this.onToggleCleared,
     this.onDelete,
+    this.dragHandle,
   });
 
   void _showPaymentDialog(BuildContext context) {
@@ -65,6 +67,10 @@ class DebtCard extends StatelessWidget {
               Expanded(
                 child: Row(
                   children: [
+                    if (dragHandle != null) ...[
+                      dragHandle!,
+                      AppSpacing.hXS,
+                    ],
                     Container(
                       width: 32,
                       height: 32,

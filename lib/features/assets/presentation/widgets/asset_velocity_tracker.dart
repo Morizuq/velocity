@@ -206,26 +206,51 @@ class AssetVelocityTracker extends ConsumerWidget {
               onAction: () => _showAddAssetDialog(context, ref),
             )
           else
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final isWide = constraints.maxWidth >= 600;
-                final double cardWidth = isWide
-                    ? (constraints.maxWidth - AppSpacing.m) / 2
-                    : constraints.maxWidth;
-
-                return Wrap(
-                  spacing: AppSpacing.m,
-                  runSpacing: AppSpacing.m,
-                  children: assets.map((asset) {
-                    return SizedBox(
-                      width: cardWidth,
-                      child: AssetGoalTile(
-                        asset: asset,
-                        onTap: () =>
-                            _showManageAssetDialog(context, ref, asset),
+            ReorderableListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              buildDefaultDragHandles: false,
+              proxyDecorator: (child, index, animation) => Material(
+                elevation: 4,
+                color: Colors.transparent,
+                shadowColor: Colors.black.withValues(alpha: 0.3),
+                borderRadius: AppBorderRadius.allM,
+                child: child,
+              ),
+              itemCount: assets.length,
+              onReorderItem: (oldIndex, newIndex) => ref
+                  .read(assetsControllerProvider.notifier)
+                  .reorder(oldIndex, newIndex),
+              itemBuilder: (context, index) {
+                final asset = assets[index];
+                return Padding(
+                  key: ValueKey(asset.id),
+                  padding: const EdgeInsets.only(bottom: AppSpacing.s),
+                  child: ReorderableDelayedDragStartListener(
+                    index: index,
+                    child: AssetGoalTile(
+                      asset: asset,
+                      dragHandle: ReorderableDragStartListener(
+                        index: index,
+                        child: MouseRegion(
+                          cursor: SystemMouseCursors.grab,
+                          child: Padding(
+                            padding: const EdgeInsets.only(
+                              right: AppSpacing.xxs,
+                            ),
+                            child: Icon(
+                              Icons.drag_indicator_rounded,
+                              size: 16,
+                              color: theme.colorScheme.onSurfaceVariant
+                                  .withValues(alpha: 0.4),
+                            ),
+                          ),
+                        ),
                       ),
-                    );
-                  }).toList(),
+                      onTap: () =>
+                          _showManageAssetDialog(context, ref, asset),
+                    ),
+                  ),
                 );
               },
             ),

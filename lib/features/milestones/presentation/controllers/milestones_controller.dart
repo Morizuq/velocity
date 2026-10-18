@@ -155,6 +155,18 @@ class MilestonesController extends Notifier<List<MilestoneEntity>> {
           .deleteMilestone(_currentUid!, milestoneId);
     }
   }
+
+  /// Reorders milestones when dragged and dropped, updating local and cloud sequence.
+  void reorder(int oldIndex, int newIndex) {
+    if (oldIndex < 0 || oldIndex >= state.length) return;
+    if (newIndex < 0 || newIndex >= state.length) return;
+    if (oldIndex == newIndex) return;
+    final updated = List<MilestoneEntity>.from(state);
+    final item = updated.removeAt(oldIndex);
+    updated.insert(newIndex, item);
+    state = updated;
+    _persist(updated);
+  }
 }
 
 final milestonesControllerProvider =

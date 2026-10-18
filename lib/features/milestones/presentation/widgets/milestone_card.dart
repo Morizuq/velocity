@@ -14,6 +14,7 @@ class MilestoneCard extends StatelessWidget {
   final void Function(double delta) onAdjustDelta;
   final void Function(double newTotal) onSetExactTotal;
   final VoidCallback? onDelete;
+  final Widget? dragHandle;
 
   const MilestoneCard({
     super.key,
@@ -21,6 +22,7 @@ class MilestoneCard extends StatelessWidget {
     required this.onAdjustDelta,
     required this.onSetExactTotal,
     this.onDelete,
+    this.dragHandle,
   });
 
   void _showAdjustDialog(BuildContext context) {
@@ -66,6 +68,10 @@ class MilestoneCard extends StatelessWidget {
               Expanded(
                 child: Row(
                   children: [
+                    if (dragHandle != null) ...[
+                      dragHandle!,
+                      AppSpacing.hXS,
+                    ],
                     Container(
                       width: 32,
                       height: 32,

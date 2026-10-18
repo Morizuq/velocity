@@ -185,6 +185,18 @@ class AssetsController extends Notifier<List<AssetEntity>> {
       ref.read(firestoreSyncServiceProvider).deleteAsset(_currentUid!, assetId);
     }
   }
+
+  /// Reorders assets when dragged and dropped, updating local and cloud sequence.
+  void reorder(int oldIndex, int newIndex) {
+    if (oldIndex < 0 || oldIndex >= state.length) return;
+    if (newIndex < 0 || newIndex >= state.length) return;
+    if (oldIndex == newIndex) return;
+    final updated = List<AssetEntity>.from(state);
+    final item = updated.removeAt(oldIndex);
+    updated.insert(newIndex, item);
+    state = updated;
+    _persist(updated);
+  }
 }
 
 final assetsControllerProvider =

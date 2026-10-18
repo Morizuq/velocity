@@ -12,11 +12,13 @@ import '../../domain/entities/asset_entity.dart';
 class AssetGoalTile extends StatelessWidget {
   final AssetEntity asset;
   final VoidCallback onTap;
+  final Widget? dragHandle;
 
   const AssetGoalTile({
     super.key,
     required this.asset,
     required this.onTap,
+    this.dragHandle,
   });
 
   @override
@@ -49,6 +51,10 @@ class AssetGoalTile extends StatelessWidget {
             children: [
               Row(
                 children: [
+                  if (dragHandle != null) ...[
+                    dragHandle!,
+                    AppSpacing.hXXS,
+                  ],
                   Icon(
                     isCompleted
                         ? Icons.verified_rounded
