@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../../../shared/design_system/buttons/primary_button.dart';
-import '../../../../shared/design_system/inputs/primary_input.dart';
+import '../../../../shared/design_system/inputs/currency_amount_input.dart';
 import '../../../../shared/design_system/tokens/app_border_radius.dart';
 import '../../../../shared/design_system/tokens/app_font_weight.dart';
 import '../../../../shared/design_system/tokens/app_spacing.dart';
 import '../../../../shared/design_system/tokens/brand_colors.dart';
 import '../../../../shared/design_system/tokens/financial_number_formatter.dart';
 import '../../domain/entities/asset_entity.dart';
+import 'asset_mode_tab.dart';
 
 /// Modal dialog allowing the user to deposit capital, withdraw, set balance, or mark asset as purchased.
 class ManageAssetDialog extends StatefulWidget {
@@ -61,7 +62,8 @@ class _ManageAssetDialogState extends State<ManageAssetDialog> {
     setState(() {
       _isDirectOverride = false;
       _isWithdraw = isWithdraw;
-      _amountController.text = amount.toStringAsFixed(0);
+      _amountController.text =
+          FinancialNumberFormatter.format(amount).replaceAll('₦', '').trim();
       _errorMessage = null;
     });
   }
@@ -80,10 +82,11 @@ class _ManageAssetDialogState extends State<ManageAssetDialog> {
       child: Container(
         constraints: const BoxConstraints(maxWidth: 440),
         padding: const EdgeInsets.all(AppSpacing.l),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             // Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -199,7 +202,7 @@ class _ManageAssetDialogState extends State<ManageAssetDialog> {
             Row(
               children: [
                 Expanded(
-                  child: _AssetModeTab(
+                  child: AssetModeTab(
                     label: '+ Add Money',
                     isSelected: !_isWithdraw && !_isDirectOverride,
                     selectedColor: brandColors.progress,
@@ -211,7 +214,7 @@ class _ManageAssetDialogState extends State<ManageAssetDialog> {
                 ),
                 AppSpacing.hS,
                 Expanded(
-                  child: _AssetModeTab(
+                  child: AssetModeTab(
                     label: '- Withdraw',
                     isSelected: _isWithdraw && !_isDirectOverride,
                     selectedColor: brandColors.debt,
@@ -223,7 +226,7 @@ class _ManageAssetDialogState extends State<ManageAssetDialog> {
                 ),
                 AppSpacing.hS,
                 Expanded(
-                  child: _AssetModeTab(
+                  child: AssetModeTab(
                     label: '= Set Total',
                     isSelected: _isDirectOverride,
                     selectedColor: brandColors.accent,
@@ -236,17 +239,15 @@ class _ManageAssetDialogState extends State<ManageAssetDialog> {
             ),
             AppSpacing.vM,
 
-            PrimaryInput(
+            CurrencyAmountInput(
               labelText: _isDirectOverride
                   ? 'New Total Secured Capital (NGN)'
                   : (_isWithdraw
                         ? 'Withdrawal / Reallocation Amount (NGN)'
                         : 'Deposit / Addition Amount (NGN)'),
-              hintText: _isDirectOverride ? 'e.g. 5000000' : 'e.g. 1000000',
+              hintText: _isDirectOverride ? '5,000,000' : '1,000,000',
               controller: _amountController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
+              errorText: _errorMessage,
               prefixIcon: Icon(
                 _isDirectOverride
                     ? Icons.tune_rounded
@@ -258,15 +259,6 @@ class _ManageAssetDialogState extends State<ManageAssetDialog> {
                     : (_isWithdraw ? brandColors.debt : brandColors.progress),
               ),
             ),
-            if (_errorMessage != null) ...[
-              AppSpacing.vXXS,
-              Text(
-                _errorMessage!,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.error,
-                ),
-              ),
-            ],
             AppSpacing.vS,
 
             // Quick Preset Chips
@@ -275,23 +267,15 @@ class _ManageAssetDialogState extends State<ManageAssetDialog> {
                 spacing: AppSpacing.xs,
                 runSpacing: AppSpacing.xs,
                 children: [
-                  _QuickAssetChip(
-                    label: _isWithdraw ? '-₦200,000' : '+₦200,000',
-                    onTap: () =>
-                        _applyQuickAmount(200000, isWithdraw: _isWithdraw),
-                  ),
-                  _QuickAssetChip(
-                    label: _isWithdraw ? '-₦500,000' : '+₦500,000',
-                    onTap: () =>
-                        _applyQuickAmount(500000, isWithdraw: _isWithdraw),
-                  ),
-                  _QuickAssetChip(
-                    label: _isWithdraw ? '-₦1,000,000' : '+₦1,000,000',
-                    onTap: () =>
-                        _applyQuickAmount(1000000, isWithdraw: _isWithdraw),
-                  ),
+                  for (final amount in const [200000.0, 500000.0, 1000000.0])
+                    AssetQuickChip(
+                      label:
+                          '${_isWithdraw ? '-' : '+'}₦${FinancialNumberFormatter.format(amount).replaceAll('₦', '').trim()}',
+                      onTap: () =>
+                          _applyQuickAmount(amount, isWithdraw: _isWithdraw),
+                    ),
                   if (!_isWithdraw && remaining > 0)
-                    _QuickAssetChip(
+                    AssetQuickChip(
                       label: 'Complete Horizon',
                       onTap: () =>
                           _applyQuickAmount(remaining, isWithdraw: false),
@@ -337,93 +321,7 @@ class _ManageAssetDialogState extends State<ManageAssetDialog> {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _AssetModeTab extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final Color selectedColor;
-  final VoidCallback onTap;
-
-  const _AssetModeTab({
-    required this.label,
-    required this.isSelected,
-    required this.selectedColor,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: AppBorderRadius.allM,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.s),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: isSelected
-              ? selectedColor.withValues(alpha: 0.15)
-              : theme.colorScheme.surfaceContainerHigh,
-          borderRadius: AppBorderRadius.allM,
-        ),
-        child: Text(
-          label,
-          style: theme.textTheme.labelSmall?.copyWith(
-            fontWeight: isSelected ? AppFontWeight.bold : AppFontWeight.medium,
-            color: isSelected
-                ? selectedColor
-                : theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _QuickAssetChip extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-  final bool isHighlight;
-
-  const _QuickAssetChip({
-    required this.label,
-    required this.onTap,
-    this.isHighlight = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final brandColors = context.brandColors;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: AppBorderRadius.pill,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.s,
-          vertical: AppSpacing.xxs + 2,
-        ),
-        decoration: BoxDecoration(
-          color: isHighlight
-              ? brandColors.subtle
-              : theme.colorScheme.surfaceContainerHigh,
-          borderRadius: AppBorderRadius.pill,
-        ),
-        child: Text(
-          label,
-          style: theme.textTheme.labelSmall?.copyWith(
-            fontWeight: AppFontWeight.medium,
-            color: isHighlight
-                ? brandColors.accent
-                : theme.colorScheme.onSurface,
-          ),
-        ),
-      ),
-    );
+    ),
+  );
   }
 }

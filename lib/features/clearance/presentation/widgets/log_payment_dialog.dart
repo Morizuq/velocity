@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../shared/design_system/buttons/primary_button.dart';
-import '../../../../shared/design_system/inputs/primary_input.dart';
+import '../../../../shared/design_system/inputs/currency_amount_input.dart';
 import '../../../../shared/design_system/tokens/app_border_radius.dart';
 import '../../../../shared/design_system/tokens/app_font_weight.dart';
 import '../../../../shared/design_system/tokens/app_spacing.dart';
@@ -44,7 +44,9 @@ class _LogPaymentDialogState extends State<LogPaymentDialog> {
   }
 
   void _applyQuickAmount(double amount) {
-    _amountController.text = amount.toStringAsFixed(0);
+    _amountController.text = FinancialNumberFormatter.format(
+      amount,
+    ).replaceAll('₦', '').trim();
     setState(() => _errorMessage = null);
   }
 
@@ -55,122 +57,123 @@ class _LogPaymentDialogState extends State<LogPaymentDialog> {
 
     return Dialog(
       backgroundColor: brandColors.surfaceCard,
-      shape: const RoundedRectangleBorder(
-        borderRadius: AppBorderRadius.allXL,
-      ),
+      shape: const RoundedRectangleBorder(borderRadius: AppBorderRadius.allXL),
       child: Container(
         constraints: const BoxConstraints(maxWidth: 420),
         padding: const EdgeInsets.all(AppSpacing.l),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Log Payment',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: AppFontWeight.bold,
+                        ),
+                      ),
+                      AppSpacing.vXXS,
+                      Text(
+                        widget.debt.creditor,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+              AppSpacing.vM,
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.m),
+                decoration: BoxDecoration(
+                  color: brandColors.debt.withValues(alpha: 0.1),
+                  borderRadius: AppBorderRadius.allM,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Log Payment',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: AppFontWeight.bold,
+                      'Remaining Dues',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: brandColors.debt,
+                        fontWeight: AppFontWeight.medium,
                       ),
                     ),
-                    AppSpacing.vXXS,
                     Text(
-                      widget.debt.creditor,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                      FinancialNumberFormatter.format(
+                        widget.debt.remainingAmount,
+                      ),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: brandColors.debt,
+                        fontWeight: AppFontWeight.bold,
                       ),
                     ),
                   ],
                 ),
-                IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close_rounded),
+              ),
+              AppSpacing.vM,
+              CurrencyAmountInput(
+                labelText: 'Payment Amount (NGN)',
+                hintText: 'e.g. 15,000',
+                controller: _amountController,
+                prefixIcon: const Icon(Icons.payments_outlined),
+              ),
+              if (_errorMessage != null) ...[
+                AppSpacing.vXXS,
+                Text(
+                  _errorMessage!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
                 ),
               ],
-            ),
-            AppSpacing.vM,
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.m),
-              decoration: BoxDecoration(
-                color: brandColors.debt.withValues(alpha: 0.1),
-                borderRadius: AppBorderRadius.allM,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              AppSpacing.vS,
+              // Quick preset chips
+              Wrap(
+                spacing: AppSpacing.xs,
+                runSpacing: AppSpacing.xs,
                 children: [
-                  Text(
-                    'Remaining Dues',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: brandColors.debt,
-                      fontWeight: AppFontWeight.medium,
-                    ),
+                  _QuickChip(
+                    label: '+₦5,000',
+                    onTap: () => _applyQuickAmount(5000),
                   ),
-                  Text(
-                    FinancialNumberFormatter.format(widget.debt.remainingAmount),
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: brandColors.debt,
-                      fontWeight: AppFontWeight.bold,
-                    ),
+                  _QuickChip(
+                    label: '+₦10,000',
+                    onTap: () => _applyQuickAmount(10000),
+                  ),
+                  _QuickChip(
+                    label: '+₦20,000',
+                    onTap: () => _applyQuickAmount(20000),
+                  ),
+                  _QuickChip(
+                    label: 'Clear All',
+                    onTap: () => _applyQuickAmount(widget.debt.remainingAmount),
+                    highlight: true,
                   ),
                 ],
               ),
-            ),
-            AppSpacing.vM,
-            PrimaryInput(
-              labelText: 'Payment Amount (NGN)',
-              hintText: 'e.g. 15000',
-              controller: _amountController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              prefixIcon: const Icon(Icons.payments_outlined),
-            ),
-            if (_errorMessage != null) ...[
-              AppSpacing.vXXS,
-              Text(
-                _errorMessage!,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.error,
+              AppSpacing.vXL,
+              SizedBox(
+                width: double.infinity,
+                child: PrimaryButton(
+                  text: 'Record Payment',
+                  icon: Icons.check_circle_outline_rounded,
+                  onPressed: _submit,
                 ),
               ),
             ],
-            AppSpacing.vS,
-            // Quick preset chips
-            Wrap(
-              spacing: AppSpacing.xs,
-              runSpacing: AppSpacing.xs,
-              children: [
-                _QuickChip(
-                  label: '+₦5,000',
-                  onTap: () => _applyQuickAmount(5000),
-                ),
-                _QuickChip(
-                  label: '+₦10,000',
-                  onTap: () => _applyQuickAmount(10000),
-                ),
-                _QuickChip(
-                  label: '+₦20,000',
-                  onTap: () => _applyQuickAmount(20000),
-                ),
-                _QuickChip(
-                  label: 'Clear All',
-                  onTap: () => _applyQuickAmount(widget.debt.remainingAmount),
-                  highlight: true,
-                ),
-              ],
-            ),
-            AppSpacing.vXL,
-            SizedBox(
-              width: double.infinity,
-              child: PrimaryButton(
-                text: 'Record Payment',
-                icon: Icons.check_circle_outline_rounded,
-                onPressed: _submit,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -211,7 +214,9 @@ class _QuickChip extends StatelessWidget {
           label,
           style: theme.textTheme.labelSmall?.copyWith(
             fontWeight: AppFontWeight.medium,
-            color: highlight ? brandColors.progress : theme.colorScheme.onSurface,
+            color: highlight
+                ? brandColors.progress
+                : theme.colorScheme.onSurface,
           ),
         ),
       ),

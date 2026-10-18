@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../shared/design_system/buttons/primary_button.dart';
+import '../../../../shared/design_system/inputs/currency_amount_input.dart';
 import '../../../../shared/design_system/inputs/primary_input.dart';
 import '../../../../shared/design_system/tokens/app_border_radius.dart';
 import '../../../../shared/design_system/tokens/app_font_weight.dart';
@@ -59,69 +60,69 @@ class _AddDebtDialogState extends State<AddDebtDialog> {
       child: Container(
         constraints: const BoxConstraints(maxWidth: 420),
         padding: const EdgeInsets.all(AppSpacing.l),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    'Add Clearance Debt',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: AppFontWeight.bold,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Add Clearance Debt',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: AppFontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close_rounded),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+              AppSpacing.vM,
+              PrimaryInput(
+                labelText: 'Creditor / Recipient',
+                hintText: 'e.g. Kuda, Justin, Palmpay, Mom',
+                controller: _creditorController,
+                prefixIcon: const Icon(Icons.person_outline_rounded),
+              ),
+              AppSpacing.vM,
+              CurrencyAmountInput(
+                labelText: 'Total Debt Owed (NGN)',
+                hintText: 'e.g. 500,000',
+                controller: _totalController,
+                prefixIcon: const Icon(Icons.money_off_rounded),
+              ),
+              AppSpacing.vM,
+              CurrencyAmountInput(
+                labelText: 'Amount Already Paid (Optional)',
+                hintText: 'e.g. 20,000',
+                controller: _paidController,
+                prefixIcon: const Icon(Icons.payments_outlined),
+              ),
+              if (_errorMessage != null) ...[
+                AppSpacing.vS,
+                Text(
+                  _errorMessage!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
                 ),
               ],
-            ),
-            AppSpacing.vM,
-            PrimaryInput(
-              labelText: 'Creditor / Recipient',
-              hintText: 'e.g. Kuda, Justin, Palmpay, Mom',
-              controller: _creditorController,
-              prefixIcon: const Icon(Icons.person_outline_rounded),
-            ),
-            AppSpacing.vM,
-            PrimaryInput(
-              labelText: 'Total Debt Owed (NGN)',
-              hintText: 'e.g. 100000',
-              controller: _totalController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              prefixIcon: const Icon(Icons.money_off_rounded),
-            ),
-            AppSpacing.vM,
-            PrimaryInput(
-              labelText: 'Amount Already Paid (Optional)',
-              hintText: 'e.g. 20000',
-              controller: _paidController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              prefixIcon: const Icon(Icons.payments_outlined),
-            ),
-            if (_errorMessage != null) ...[
-              AppSpacing.vS,
-              Text(
-                _errorMessage!,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.error,
+              AppSpacing.vXL,
+              SizedBox(
+                width: double.infinity,
+                child: PrimaryButton(
+                  text: 'Record Debt Account',
+                  icon: Icons.check_circle_outline_rounded,
+                  onPressed: _submit,
                 ),
               ),
             ],
-            AppSpacing.vXL,
-            SizedBox(
-              width: double.infinity,
-              child: PrimaryButton(
-                text: 'Record Debt Account',
-                icon: Icons.check_circle_outline_rounded,
-                onPressed: _submit,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

@@ -138,5 +138,30 @@ void main() {
         expect(find.text('Alex Vance'), findsOneWidget);
       },
     );
+
+    testWidgets(
+      'UserProfilePill collapses to avatar only when isCompact is true',
+      (WidgetTester tester) async {
+        final mockRepo = MockAuthRepository();
+        await mockRepo.signInWithGoogle();
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [authRepositoryProvider.overrideWithValue(mockRepo)],
+            child: MaterialApp(
+              theme: AppTheme.darkTheme,
+              home: const Scaffold(
+                body: Center(child: UserProfilePill(isCompact: true)),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Shows avatar initials 'AV', but hides full name label 'Alex Vance'
+        expect(find.text('AV'), findsOneWidget);
+        expect(find.text('Alex Vance'), findsNothing);
+      },
+    );
   });
 }

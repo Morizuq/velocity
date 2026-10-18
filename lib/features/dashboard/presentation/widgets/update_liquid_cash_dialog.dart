@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../../../shared/design_system/buttons/primary_button.dart';
-import '../../../../shared/design_system/inputs/primary_input.dart';
+import '../../../../shared/design_system/inputs/currency_amount_input.dart';
 import '../../../../shared/design_system/tokens/app_border_radius.dart';
 import '../../../../shared/design_system/tokens/app_font_weight.dart';
 import '../../../../shared/design_system/tokens/app_spacing.dart';
 import '../../../../shared/design_system/tokens/brand_colors.dart';
+import '../../../../shared/design_system/tokens/financial_number_formatter.dart';
 
 /// Modal dialog for updating or recording initial liquid cash balance.
 class UpdateLiquidCashDialog extends StatefulWidget {
@@ -30,7 +31,9 @@ class _UpdateLiquidCashDialogState extends State<UpdateLiquidCashDialog> {
     super.initState();
     _amountController = TextEditingController(
       text: widget.currentBalance > 0
-          ? widget.currentBalance.toStringAsFixed(0)
+          ? FinancialNumberFormatter.format(
+              widget.currentBalance,
+            ).replaceAll('₦', '').trim()
           : '',
     );
   }
@@ -65,62 +68,61 @@ class _UpdateLiquidCashDialogState extends State<UpdateLiquidCashDialog> {
       child: Container(
         constraints: const BoxConstraints(maxWidth: 420),
         padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    'Available Liquid Cash',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: AppFontWeight.bold,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Available Liquid Cash',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: AppFontWeight.bold,
+                      ),
                     ),
                   ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close_rounded, size: 20),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
+              ),
+              AppSpacing.vXXS,
+              Text(
+                'Set your readily spendable capital across checking and physical reserves.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.7,
+                  ),
                 ),
-                IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close_rounded, size: 20),
-                  visualDensity: VisualDensity.compact,
+              ),
+              AppSpacing.vL,
+              CurrencyAmountInput(
+                labelText: 'Total Liquid Balance (₦)',
+                hintText: 'e.g. 500,000',
+                controller: _amountController,
+                prefixIcon: const Icon(
+                  Icons.account_balance_wallet_rounded,
+                  size: 18,
+                ),
+              ),
+              if (_errorMessage != null) ...[
+                AppSpacing.vS,
+                Text(
+                  _errorMessage!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: brandColors.debt,
+                  ),
                 ),
               ],
-            ),
-            AppSpacing.vXXS,
-            Text(
-              'Set your readily spendable capital across checking and physical reserves.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant.withValues(
-                  alpha: 0.7,
-                ),
-              ),
-            ),
-            AppSpacing.vL,
-            PrimaryInput(
-              labelText: 'Total Liquid Balance (₦)',
-              hintText: 'e.g. 500000',
-              controller: _amountController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              prefixIcon: const Icon(
-                Icons.account_balance_wallet_rounded,
-                size: 18,
-              ),
-            ),
-            if (_errorMessage != null) ...[
-              AppSpacing.vS,
-              Text(
-                _errorMessage!,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: brandColors.debt,
-                ),
-              ),
+              AppSpacing.vXL,
+              PrimaryButton(text: 'Save Available Cash', onPressed: _submit),
             ],
-            AppSpacing.vXL,
-            PrimaryButton(text: 'Save Available Cash', onPressed: _submit),
-          ],
+          ),
         ),
       ),
     );

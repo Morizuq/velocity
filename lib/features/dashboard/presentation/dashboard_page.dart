@@ -110,7 +110,7 @@ class DashboardPage extends ConsumerWidget {
               // Top Header Navigation Bar
               LayoutBuilder(
                 builder: (context, headerConstraints) {
-                  final isCompact = headerConstraints.maxWidth < 440;
+                  final isCompact = headerConstraints.maxWidth < 560;
                   final isVeryCompact = headerConstraints.maxWidth < 360;
 
                   return Row(
@@ -158,10 +158,10 @@ class DashboardPage extends ConsumerWidget {
                         ),
                       ),
                       AppSpacing.hS,
-                      // Google Auth Profile Pill / Login CTA
-                      const UserProfilePill(),
+                      // Google Auth Profile Pill / Login CTA (collapses adaptively on mobile)
+                      UserProfilePill(isCompact: isCompact),
                       AppSpacing.hS,
-                      // Theme Mode Pill Toggle with Sliding Transition and Circular Cascade Reveal
+                      // Theme Mode Pill Toggle
                       const ThemeModeToggle(),
                     ],
                   );

@@ -11,7 +11,9 @@ import 'google_sign_in_button.dart';
 
 /// Top bar user profile chip indicating live Google authentication state.
 class UserProfilePill extends ConsumerWidget {
-  const UserProfilePill({super.key});
+  final bool? isCompact;
+
+  const UserProfilePill({super.key, this.isCompact});
 
   void _showUserSessionModal(
     BuildContext context,
@@ -187,70 +189,78 @@ class UserProfilePill extends ConsumerWidget {
     final authState = ref.watch(authControllerProvider);
     final user = authState.value;
 
+    final effectiveCompact =
+        isCompact ?? (MediaQuery.sizeOf(context).width < 560);
+
     if (user == null) {
       return const GoogleSignInButton(isCompact: true);
     }
 
-    return InkWell(
-      onTap: () => _showUserSessionModal(context, ref, user),
-      borderRadius: AppBorderRadius.pill,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.s + 2,
-          vertical: AppSpacing.xs + 1,
-        ),
-        decoration: BoxDecoration(
-          color: brandColors.surfaceCard,
-          borderRadius: AppBorderRadius.pill,
-          boxShadow: [
-            BoxShadow(
-              color: isDark
-                  ? Colors.black.withValues(alpha: 0.2)
-                  : const Color(0x06000000),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircleAvatar(
-              radius: 14,
-              backgroundColor: brandColors.accent.withValues(alpha: 0.2),
-              backgroundImage: user.photoUrl != null
-                  ? NetworkImage(user.photoUrl!)
-                  : null,
-              child: user.photoUrl == null
-                  ? Text(
-                      user.initials,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        fontWeight: AppFontWeight.bold,
-                        color: brandColors.accent,
-                        fontSize: 10,
-                      ),
-                    )
-                  : null,
-            ),
-            AppSpacing.hS,
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 120),
-              child: Text(
-                user.displayLabel,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  fontWeight: AppFontWeight.semiBold,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+    return Tooltip(
+      message: 'Account: ${user.displayLabel}',
+      child: InkWell(
+        onTap: () => _showUserSessionModal(context, ref, user),
+        borderRadius: AppBorderRadius.pill,
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: effectiveCompact ? AppSpacing.xs + 2 : AppSpacing.s + 2,
+            vertical: AppSpacing.xs + 1,
+          ),
+          decoration: BoxDecoration(
+            color: brandColors.surfaceCard,
+            borderRadius: AppBorderRadius.pill,
+            boxShadow: [
+              BoxShadow(
+                color: isDark
+                    ? Colors.black.withValues(alpha: 0.2)
+                    : const Color(0x06000000),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
-            ),
-            AppSpacing.hXS,
-            Icon(
-              Icons.keyboard_arrow_down_rounded,
-              size: AppIconSize.s - 4,
-              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-            ),
-          ],
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 14,
+                backgroundColor: brandColors.accent.withValues(alpha: 0.2),
+                backgroundImage: user.photoUrl != null
+                    ? NetworkImage(user.photoUrl!)
+                    : null,
+                child: user.photoUrl == null
+                    ? Text(
+                        user.initials,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontWeight: AppFontWeight.bold,
+                          color: brandColors.accent,
+                          fontSize: 10,
+                        ),
+                      )
+                    : null,
+              ),
+              if (!effectiveCompact) ...[
+                AppSpacing.hS,
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 120),
+                  child: Text(
+                    user.displayLabel,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontWeight: AppFontWeight.semiBold,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+              AppSpacing.hXXS,
+              Icon(
+                Icons.keyboard_arrow_down_rounded,
+                size: AppIconSize.s - 4,
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+              ),
+            ],
+          ),
         ),
       ),
     );

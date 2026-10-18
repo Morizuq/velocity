@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../tokens/app_spacing.dart';
 import '../tokens/app_border_radius.dart';
 
@@ -12,6 +13,10 @@ class PrimaryInput extends StatelessWidget {
   final Widget? suffixIcon;
   final TextInputType? keyboardType;
   final ValueChanged<String>? onChanged;
+  final List<TextInputFormatter>? inputFormatters;
+  final Widget? helperWidget;
+  final String? helperText;
+  final String? errorText;
 
   const PrimaryInput({
     super.key,
@@ -24,6 +29,10 @@ class PrimaryInput extends StatelessWidget {
     this.suffixIcon,
     this.keyboardType,
     this.onChanged,
+    this.inputFormatters,
+    this.helperWidget,
+    this.helperText,
+    this.errorText,
   });
 
   @override
@@ -50,9 +59,12 @@ class PrimaryInput extends StatelessWidget {
           obscureText: obscureText,
           keyboardType: keyboardType,
           onChanged: onChanged,
+          inputFormatters: inputFormatters,
           style: theme.textTheme.bodyLarge,
           decoration: InputDecoration(
             hintText: hintText,
+            helperText: helperText,
+            errorText: errorText,
             hintStyle: theme.textTheme.bodyLarge?.copyWith(
               color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
             ),
@@ -91,6 +103,10 @@ class PrimaryInput extends StatelessWidget {
             ),
           ),
         ),
+        if (helperWidget != null) ...[
+          AppSpacing.vXXS,
+          helperWidget!,
+        ],
       ],
     );
   }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../shared/design_system/buttons/primary_button.dart';
-import '../../../../shared/design_system/inputs/primary_input.dart';
+import '../../../../shared/design_system/inputs/currency_amount_input.dart';
 import '../../../../shared/design_system/tokens/app_border_radius.dart';
 import '../../../../shared/design_system/tokens/app_font_weight.dart';
 import '../../../../shared/design_system/tokens/app_spacing.dart';
@@ -57,7 +57,9 @@ class _AdjustMilestoneFundDialogState extends State<AdjustMilestoneFundDialog> {
     setState(() {
       _isDirectOverride = false;
       _isWithdraw = isWithdraw;
-      _amountController.text = amount.toStringAsFixed(0);
+      _amountController.text = FinancialNumberFormatter.format(amount)
+          .replaceAll('₦', '')
+          .trim();
       _errorMessage = null;
     });
   }
@@ -73,10 +75,11 @@ class _AdjustMilestoneFundDialogState extends State<AdjustMilestoneFundDialog> {
       child: Container(
         constraints: const BoxConstraints(maxWidth: 440),
         padding: const EdgeInsets.all(AppSpacing.l),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -175,13 +178,12 @@ class _AdjustMilestoneFundDialogState extends State<AdjustMilestoneFundDialog> {
             ),
             AppSpacing.vM,
 
-            PrimaryInput(
+            CurrencyAmountInput(
               labelText: _isDirectOverride
                   ? 'New Total Balance (NGN)'
                   : (_isWithdraw ? 'Withdrawal Amount (NGN)' : 'Deposit Amount (NGN)'),
-              hintText: _isDirectOverride ? 'e.g. 100000' : 'e.g. 25000',
+              hintText: _isDirectOverride ? 'e.g. 100,000' : 'e.g. 25,000',
               controller: _amountController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
               prefixIcon: Icon(
                 _isDirectOverride
                     ? Icons.tune_rounded
@@ -244,6 +246,7 @@ class _AdjustMilestoneFundDialogState extends State<AdjustMilestoneFundDialog> {
               ),
             ),
           ],
+          ),
         ),
       ),
     );
