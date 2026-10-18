@@ -1,6 +1,6 @@
 [build]
   publish = "build/web"
-  command = "[ -d _flutter ] || git clone https://github.com/flutter/flutter.git --depth 1 -b stable _flutter && export PATH=\"$PATH:$(pwd)/_flutter/bin\" && flutter build web --release"
+  command = "[ -d _flutter ] || git clone https://github.com/flutter/flutter.git --depth 1 -b stable _flutter && export PATH=\"$PATH:$(pwd)/_flutter/bin\" && flutter build web --release --pwa-strategy=none"
 
 # Reverse proxy Firebase Auth handler for clean custom domain OAuth
 [[redirects]]
@@ -33,6 +33,11 @@
 
 [[headers]]
   for = "/flutter_bootstrap.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+[[headers]]
+  for = "/main.dart.js"
   [headers.values]
     Cache-Control = "no-cache, no-store, must-revalidate"
 
