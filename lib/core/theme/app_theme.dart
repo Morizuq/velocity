@@ -16,6 +16,7 @@ class AppTheme {
       onPrimary: AppColors.onPrimary,
       surface: AppColors.background,
       onSurface: AppColors.onBackground,
+      onSurfaceVariant: Color(0xFF64748B),
       surfaceContainerLowest: Color(0xFFFFFFFF),
       surfaceContainerLow: Color(0xFFFFFFFF),
       surfaceContainer: Color(0xFFF1F5F9),
@@ -42,6 +43,7 @@ class AppTheme {
       onPrimary: AppColors.onPrimaryDark,
       surface: AppColors.backgroundDark,
       onSurface: AppColors.onBackgroundDark,
+      onSurfaceVariant: Color(0xFF94A3B8), // High contrast slate for secondary elements
       surfaceContainerLowest: Color(0xFF0D121B),
       surfaceContainerLow: Color(0xFF111723),
       surfaceContainer: Color(0xFF151D2C),

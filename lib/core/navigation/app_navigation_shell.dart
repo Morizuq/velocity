@@ -26,6 +26,7 @@ class AppNavigationShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final brandColors = context.brandColors;
+    final isDark = theme.brightness == Brightness.dark;
     final screenWidth = MediaQuery.sizeOf(context).width;
     final isDesktop = screenWidth >= 960;
     final currentIndex = navigationShell.currentIndex;
@@ -171,34 +172,102 @@ class AppNavigationShell extends StatelessWidget {
       body: navigationShell,
       bottomNavigationBar: isDesktop
           ? null
-          : NavigationBar(
-              selectedIndex: currentIndex,
-              onDestinationSelected: _onTapDestination,
-              elevation: 4,
-              backgroundColor: theme.colorScheme.surface,
-              indicatorColor: brandColors.debt.withValues(alpha: 0.15),
-              destinations: const [
-                NavigationDestination(
-                  icon: Icon(Icons.speed_outlined),
-                  selectedIcon: Icon(Icons.speed_rounded),
-                  label: 'Dashboard',
+          : Container(
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF0F172A) : Colors.white,
+                border: Border(
+                  top: BorderSide(
+                    color: isDark
+                        ? const Color(0xFF1E293B)
+                        : const Color(0xFFE2E8F0),
+                    width: 1,
+                  ),
                 ),
-                NavigationDestination(
-                  icon: Icon(Icons.credit_card_off_outlined),
-                  selectedIcon: Icon(Icons.credit_card_off_rounded),
-                  label: 'Clearance',
+                boxShadow: [
+                  BoxShadow(
+                    color: isDark
+                        ? Colors.black.withValues(alpha: 0.35)
+                        : const Color(0x0C000000),
+                    blurRadius: 16,
+                    offset: const Offset(0, -4),
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                top: false,
+                child: NavigationBarTheme(
+                  data: NavigationBarThemeData(
+                    backgroundColor: Colors.transparent,
+                    indicatorColor: isDark
+                        ? const Color(0xFF0284C7).withValues(alpha: 0.22)
+                        : const Color(0xFF0284C7).withValues(alpha: 0.12),
+                    height: 64,
+                    elevation: 0,
+                    iconTheme: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return IconThemeData(
+                          color: isDark
+                              ? const Color(0xFF38BDF8)
+                              : const Color(0xFF0284C7),
+                          size: 22,
+                        );
+                      }
+                      return IconThemeData(
+                        color: isDark
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF64748B),
+                        size: 22,
+                      );
+                    }),
+                    labelTextStyle: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return TextStyle(
+                          color: isDark
+                              ? const Color(0xFFF8FAFC)
+                              : const Color(0xFF0F172A),
+                          fontSize: 11,
+                          fontWeight: AppFontWeight.bold,
+                          letterSpacing: 0.2,
+                        );
+                      }
+                      return TextStyle(
+                        color: isDark
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF64748B),
+                        fontSize: 11,
+                        fontWeight: AppFontWeight.medium,
+                        letterSpacing: 0.1,
+                      );
+                    }),
+                  ),
+                  child: NavigationBar(
+                    selectedIndex: currentIndex,
+                    onDestinationSelected: _onTapDestination,
+                    destinations: const [
+                      NavigationDestination(
+                        icon: Icon(Icons.speed_outlined),
+                        selectedIcon: Icon(Icons.speed_rounded),
+                        label: 'Dashboard',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.credit_card_outlined),
+                        selectedIcon: Icon(Icons.credit_card_rounded),
+                        label: 'Clearance',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.flag_outlined),
+                        selectedIcon: Icon(Icons.flag_rounded),
+                        label: 'Milestones',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.receipt_outlined),
+                        selectedIcon: Icon(Icons.receipt_rounded),
+                        label: 'Expenses',
+                      ),
+                    ],
+                  ),
                 ),
-                NavigationDestination(
-                  icon: Icon(Icons.flag_outlined),
-                  selectedIcon: Icon(Icons.flag_rounded),
-                  label: 'Milestones',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.receipt_long_outlined),
-                  selectedIcon: Icon(Icons.receipt_long_rounded),
-                  label: 'Expenses',
-                ),
-              ],
+              ),
             ),
     );
   }
