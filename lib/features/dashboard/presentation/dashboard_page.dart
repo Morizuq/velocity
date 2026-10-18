@@ -1,21 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../shared/design_system/tokens/app_font_weight.dart';
 import '../../../shared/design_system/tokens/app_responsive.dart';
 import '../../../shared/design_system/tokens/app_spacing.dart';
 import '../../../shared/design_system/tokens/brand_colors.dart';
 import '../../../shared/design_system/tokens/financial_number_formatter.dart';
-import '../../../shared/design_system/tokens/velocity_icon.dart';
 import '../../assets/presentation/widgets/asset_velocity_tracker.dart';
-import '../../auth/presentation/widgets/user_profile_pill.dart';
 import '../../clearance/presentation/controllers/clearance_controller.dart';
-import '../../clearance/presentation/widgets/clearance_bucket_section.dart';
+import '../../clearance/presentation/widgets/clearance_preview_section.dart';
 import '../../milestones/presentation/controllers/milestones_controller.dart';
 import '../../milestones/presentation/widgets/milestones_bucket_section.dart';
 import 'controllers/dashboard_controller.dart';
 import 'widgets/debt_burndown_chart.dart';
 import 'widgets/financial_velocity_donut_chart.dart';
-import 'widgets/theme_mode_toggle.dart';
 import 'widgets/update_liquid_cash_dialog.dart';
 import 'widgets/velocity_metric_card.dart';
 
@@ -67,68 +63,6 @@ class DashboardPage extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top Header Navigation Bar
-              LayoutBuilder(
-                builder: (context, headerConstraints) {
-                  final isCompact = headerConstraints.maxWidth < 560;
-                  final isVeryCompact = headerConstraints.maxWidth < 360;
-
-                  return Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Row(
-                          children: [
-                            const VelocityIcon(height: 28),
-                            AppSpacing.hS,
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    'VELOCITY',
-                                    style: theme.textTheme.titleMedium
-                                        ?.copyWith(
-                                          fontWeight: AppFontWeight.bold,
-                                          letterSpacing: 1.5,
-                                        ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  if (!isVeryCompact)
-                                    Text(
-                                      isCompact
-                                          ? 'Wealth Trajectory'
-                                          : 'Financial Trajectory & Wealth Dashboard',
-                                      style: theme.textTheme.labelSmall
-                                          ?.copyWith(
-                                            color: theme
-                                                .colorScheme
-                                                .onSurfaceVariant
-                                                .withValues(alpha: 0.7),
-                                          ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      AppSpacing.hS,
-                      // Google Auth Profile Pill / Login CTA (collapses adaptively on mobile)
-                      UserProfilePill(isCompact: isCompact),
-                      AppSpacing.hS,
-                      // Theme Mode Pill Toggle
-                      const ThemeModeToggle(),
-                    ],
-                  );
-                },
-              ),
-              AppSpacing.vL,
-
               // Top Overarching Asset Horizon Tracker
               const AssetVelocityTracker(),
               AppSpacing.vL,
@@ -268,7 +202,7 @@ class DashboardPage extends ConsumerWidget {
               AppSpacing.vXL,
 
               // The Clearance Bucket (Debts & Immediate Dues)
-              const ClearanceBucketSection(),
+              const ClearancePreviewSection(),
               AppSpacing.vXL,
 
               // The Milestone Bucket (Upcoming Big Purchases)

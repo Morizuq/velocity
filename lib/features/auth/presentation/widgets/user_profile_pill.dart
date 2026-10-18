@@ -193,7 +193,10 @@ class UserProfilePill extends ConsumerWidget {
         isCompact ?? (MediaQuery.sizeOf(context).width < 560);
 
     if (user == null) {
-      return const GoogleSignInButton(isCompact: true);
+      return GoogleSignInButton(
+        isCompact: true,
+        isIconOnly: effectiveCompact,
+      );
     }
 
     return Tooltip(

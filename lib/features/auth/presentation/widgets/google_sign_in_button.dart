@@ -11,8 +11,14 @@ import '../controllers/auth_controller.dart';
 class GoogleSignInButton extends ConsumerStatefulWidget {
   final VoidCallback? onSuccess;
   final bool isCompact;
+  final bool isIconOnly;
 
-  const GoogleSignInButton({super.key, this.onSuccess, this.isCompact = false});
+  const GoogleSignInButton({
+    super.key,
+    this.onSuccess,
+    this.isCompact = false,
+    this.isIconOnly = false,
+  });
 
   @override
   ConsumerState<GoogleSignInButton> createState() => _GoogleSignInButtonState();
@@ -105,12 +111,15 @@ class _GoogleSignInButtonState extends ConsumerState<GoogleSignInButton> {
             onTap: isLoading ? null : _handleSignIn,
             borderRadius: AppBorderRadius.pill,
             child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: widget.isCompact ? AppSpacing.s + 3 : AppSpacing.l,
-                vertical: widget.isCompact
-                    ? AppSpacing.xs + 2
-                    : AppSpacing.m - 2,
-              ),
+              padding: widget.isIconOnly
+                  ? const EdgeInsets.all(AppSpacing.xs + 3)
+                  : EdgeInsets.symmetric(
+                      horizontal:
+                          widget.isCompact ? AppSpacing.s + 3 : AppSpacing.l,
+                      vertical: widget.isCompact
+                          ? AppSpacing.xs + 2
+                          : AppSpacing.m - 2,
+                    ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -126,7 +135,7 @@ class _GoogleSignInButtonState extends ConsumerState<GoogleSignInButton> {
                         ),
                       ),
                     ),
-                    if (!widget.isCompact) ...[
+                    if (!widget.isCompact && !widget.isIconOnly) ...[
                       AppSpacing.hS,
                       Text(
                         'Signing in...',
@@ -138,15 +147,17 @@ class _GoogleSignInButtonState extends ConsumerState<GoogleSignInButton> {
                     ],
                   ] else ...[
                     const _GoogleIcon(size: 18),
-                    AppSpacing.hS,
-                    Text(
-                      widget.isCompact ? 'Sign In' : 'Continue with Google',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        fontWeight: AppFontWeight.bold,
-                        letterSpacing: 0.2,
-                        color: theme.colorScheme.onSurface,
+                    if (!widget.isIconOnly) ...[
+                      AppSpacing.hS,
+                      Text(
+                        widget.isCompact ? 'Sign In' : 'Continue with Google',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          fontWeight: AppFontWeight.bold,
+                          letterSpacing: 0.2,
+                          color: theme.colorScheme.onSurface,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ],
               ),

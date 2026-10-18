@@ -12,8 +12,9 @@ import 'add_debt_dialog.dart';
 import 'clearance_filter_bar.dart';
 import 'debt_card.dart';
 
-/// Section widget rendering the Clearance Bucket list with drag-and-drop reordering,
-/// due date tracking, and dynamic status/sort filters.
+/// Workspace section widget rendering the full Clearance Bucket liability hub.
+/// Features interactive status filters, sorting, drag-and-drop custom reordering,
+/// and a sunken collapsible archive partition for completed/settled debts.
 class ClearanceBucketSection extends ConsumerStatefulWidget {
   const ClearanceBucketSection({super.key});
 
@@ -26,6 +27,7 @@ class _ClearanceBucketSectionState
     extends ConsumerState<ClearanceBucketSection> {
   DebtFilterStatus _filter = DebtFilterStatus.all;
   DebtSortOption _sort = DebtSortOption.custom;
+  bool _isSettledExpanded = false;
 
   void _showAddDebtDialog(BuildContext context) {
     showDialog(
@@ -61,7 +63,6 @@ class _ClearanceBucketSectionState
 
     switch (_sort) {
       case DebtSortOption.custom:
-        // Preserves manual drag-and-drop order
         break;
       case DebtSortOption.dueDate:
         list.sort((a, b) {
@@ -94,79 +95,29 @@ class _ClearanceBucketSectionState
     final clearanceNotifier = ref.read(clearanceControllerProvider.notifier);
     final dashboardNotifier = ref.read(dashboardControllerProvider.notifier);
 
+    final displayedDebts = _filterAndSort(debts);
     final isCustomDraggable =
         _sort == DebtSortOption.custom && _filter == DebtFilterStatus.all;
-    final displayedDebts = _filterAndSort(debts);
 
-    final pendingCount = debts.where((d) => !d.isCleared).length;
-    final dueSoonCount = debts.where((d) => d.isDueSoon || d.isOverdue).length;
-    final clearedCount = debts.where((d) => d.isCleared).length;
+    // Partition displayed items into active priority and sunken settled accounts
+    final active = displayedDebts.where((d) => !d.isCleared).toList();
+    final settled = displayedDebts.where((d) => d.isCleared).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'The Clearance Bucket',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: AppFontWeight.bold,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  AppSpacing.vXXS,
-                  Text(
-                    '$clearedCount of ${debts.length} cleared accounts',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.7,
-                      ),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            AppSpacing.hS,
-            FilledButton.tonalIcon(
-              onPressed: () => _showAddDebtDialog(context),
-              icon: const Icon(Icons.add_rounded, size: 16),
-              label: const Text('Add Debt', style: TextStyle(fontSize: 12)),
-              style: FilledButton.styleFrom(
-                backgroundColor: brandColors.subtle,
-                foregroundColor: brandColors.debt,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: AppBorderRadius.pill,
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.m,
-                  vertical: AppSpacing.xs,
-                ),
-              ),
-            ),
-          ],
-        ),
-        AppSpacing.vM,
-
-        // Delegated Filter and Sort Control Bar
         ClearanceFilterBar(
           currentFilter: _filter,
           currentSort: _sort,
           totalCount: debts.length,
-          pendingCount: pendingCount,
-          dueSoonCount: dueSoonCount,
-          clearedCount: clearedCount,
-          onFilterChanged: (f) => setState(() => _filter = f),
-          onSortChanged: (s) => setState(() => _sort = s),
+          pendingCount: debts.where((d) => !d.isCleared).length,
+          dueSoonCount:
+              debts.where((d) => d.isDueSoon || d.isOverdue).length,
+          clearedCount: debts.where((d) => d.isCleared).length,
+          onFilterChanged: (filter) => setState(() => _filter = filter),
+          onSortChanged: (sort) => setState(() => _sort = sort),
         ),
-        AppSpacing.vM,
+        AppSpacing.vL,
 
         if (debts.isEmpty)
           VelocityEmptyStateCard(
@@ -176,13 +127,13 @@ class _ClearanceBucketSectionState
             badgeColor: brandColors.progress,
             title: 'Clearance Bucket is Clean',
             description:
-                'No pending debts or active liabilities. Log any loans, IOUs, or credit balances to start monitoring your burn-down trajectory.',
+                'No pending debts or active liabilities. Log any loans or credit balances to start monitoring your burn-down trajectory.',
             actionLabel: 'Log First Debt Account',
             onAction: () => _showAddDebtDialog(context),
           )
         else if (displayedDebts.isEmpty)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.l),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
             child: Center(
               child: Text(
                 'No accounts match the active filter.',
@@ -193,67 +144,132 @@ class _ClearanceBucketSectionState
               ),
             ),
           )
-        else if (isCustomDraggable)
-          ReorderableListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            buildDefaultDragHandles: false,
-            proxyDecorator: (child, index, animation) => Material(
-              elevation: 8,
-              color: Colors.transparent,
-              shadowColor: Colors.black.withValues(alpha: 0.4),
-              borderRadius: AppBorderRadius.allL,
-              child: child,
-            ),
-            itemCount: displayedDebts.length,
-            onReorderItem: clearanceNotifier.reorder,
-            itemBuilder: (context, index) {
-              final debt = displayedDebts[index];
-              return Padding(
-                key: ValueKey(debt.id),
-                padding: const EdgeInsets.only(bottom: AppSpacing.m),
-                child: DebtCard(
-                  debt: debt,
-                  dragHandle: ReorderableDragStartListener(
-                    index: index,
-                    child: MouseRegion(
-                      cursor: SystemMouseCursors.grab,
-                      child: Tooltip(
-                        message: 'Drag to reorder',
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.05),
-                            borderRadius: AppBorderRadius.allS,
-                          ),
-                          alignment: Alignment.center,
-                          child: Icon(
-                            Icons.drag_indicator_rounded,
-                            size: 18,
-                            color: theme.colorScheme.onSurfaceVariant
-                                .withValues(alpha: 0.5),
+        else ...[
+          // Active accounts (Reorderable in custom mode)
+          if (isCustomDraggable)
+            ReorderableListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              buildDefaultDragHandles: false,
+              proxyDecorator: (child, index, animation) => Material(
+                elevation: 8,
+                color: Colors.transparent,
+                shadowColor: Colors.black.withValues(alpha: 0.4),
+                borderRadius: AppBorderRadius.allL,
+                child: child,
+              ),
+              itemCount: active.length,
+              onReorderItem: clearanceNotifier.reorder,
+              itemBuilder: (context, index) {
+                final debt = active[index];
+                return Padding(
+                  key: ValueKey(debt.id),
+                  padding: const EdgeInsets.only(bottom: AppSpacing.m),
+                  child: DebtCard(
+                    debt: debt,
+                    dragHandle: ReorderableDragStartListener(
+                      index: index,
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.grab,
+                        child: Tooltip(
+                          message: 'Drag to reorder',
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.onSurface
+                                  .withValues(alpha: 0.05),
+                              borderRadius: AppBorderRadius.allS,
+                            ),
+                            alignment: Alignment.center,
+                            child: Icon(
+                              Icons.drag_indicator_rounded,
+                              size: 18,
+                              color: theme.colorScheme.onSurfaceVariant
+                                  .withValues(alpha: 0.5),
+                            ),
                           ),
                         ),
                       ),
                     ),
+                    onLogPayment: (amount) {
+                      clearanceNotifier.logPayment(debt.id, amount);
+                      dashboardNotifier.deductCash(amount);
+                    },
+                    onToggleCleared: () =>
+                        clearanceNotifier.toggleCleared(debt.id),
+                    onDelete: () => clearanceNotifier.deleteDebt(debt.id),
                   ),
-                  onLogPayment: (amount) {
-                    clearanceNotifier.logPayment(debt.id, amount);
-                    dashboardNotifier.deductCash(amount);
-                  },
-                  onToggleCleared: () =>
-                      clearanceNotifier.toggleCleared(debt.id),
-                  onDelete: () => clearanceNotifier.deleteDebt(debt.id),
+                );
+              },
+            )
+          else
+            Column(
+              children: [
+                for (final debt in active)
+                  Padding(
+                    key: ValueKey(debt.id),
+                    padding: const EdgeInsets.only(bottom: AppSpacing.m),
+                    child: DebtCard(
+                      debt: debt,
+                      onLogPayment: (amount) {
+                        clearanceNotifier.logPayment(debt.id, amount);
+                        dashboardNotifier.deductCash(amount);
+                      },
+                      onToggleCleared: () =>
+                          clearanceNotifier.toggleCleared(debt.id),
+                      onDelete: () => clearanceNotifier.deleteDebt(debt.id),
+                    ),
+                  ),
+              ],
+            ),
+
+          // Settled Accounts Sunk Below
+          if (settled.isNotEmpty) ...[
+            AppSpacing.vL,
+            InkWell(
+              onTap: () =>
+                  setState(() => _isSettledExpanded = !_isSettledExpanded),
+              borderRadius: AppBorderRadius.allM,
+              child: Container(
+                padding: const EdgeInsets.all(AppSpacing.m),
+                decoration: BoxDecoration(
+                  color: brandColors.progress.withValues(alpha: 0.06),
+                  borderRadius: AppBorderRadius.allM,
+                  border: Border.all(
+                    color: brandColors.progress.withValues(alpha: 0.2),
+                  ),
                 ),
-              );
-            },
-          )
-        else
-          Column(
-            children: [
-              for (final debt in displayedDebts)
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.check_circle_rounded,
+                      size: 18,
+                      color: brandColors.progress,
+                    ),
+                    AppSpacing.hS,
+                    Expanded(
+                      child: Text(
+                        'Settled Accounts (${settled.length})',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: AppFontWeight.bold,
+                          color: brandColors.progress,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      _isSettledExpanded
+                          ? Icons.keyboard_arrow_up_rounded
+                          : Icons.keyboard_arrow_down_rounded,
+                      color: brandColors.progress,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (_isSettledExpanded) ...[
+              AppSpacing.vM,
+              for (final debt in settled)
                 Padding(
                   key: ValueKey(debt.id),
                   padding: const EdgeInsets.only(bottom: AppSpacing.m),
@@ -269,7 +285,8 @@ class _ClearanceBucketSectionState
                   ),
                 ),
             ],
-          ),
+          ],
+        ],
       ],
     );
   }

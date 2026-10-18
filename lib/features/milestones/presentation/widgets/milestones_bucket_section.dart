@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../core/router/routes.dart';
 import '../../../../shared/design_system/cards/velocity_empty_state_card.dart';
 import '../../../../shared/design_system/tokens/app_border_radius.dart';
 import '../../../../shared/design_system/tokens/app_font_weight.dart';
@@ -10,9 +12,16 @@ import '../controllers/milestones_controller.dart';
 import 'add_milestone_dialog.dart';
 import 'milestone_card.dart';
 
-/// Section widget rendering the Milestone Bucket savings targets with drag-and-drop reordering.
+/// Section widget rendering the Milestone Bucket savings targets.
+/// Supports both an executive dashboard preview mode (top 3 goals, link to hub)
+/// and full workspace mode.
 class MilestonesBucketSection extends ConsumerWidget {
-  const MilestonesBucketSection({super.key});
+  final bool isPreviewMode;
+
+  const MilestonesBucketSection({
+    super.key,
+    this.isPreviewMode = true,
+  });
 
   void _showAddMilestoneDialog(BuildContext context, WidgetRef ref) {
     showDialog(
@@ -39,6 +48,9 @@ class MilestonesBucketSection extends ConsumerWidget {
     final milestonesNotifier = ref.read(milestonesControllerProvider.notifier);
     final dashboardNotifier = ref.read(dashboardControllerProvider.notifier);
 
+    final completedCount = milestones.where((m) => m.isCompleted).length;
+    final displayed = isPreviewMode ? milestones.take(3).toList() : milestones;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -59,7 +71,7 @@ class MilestonesBucketSection extends ConsumerWidget {
                   ),
                   AppSpacing.vXXS,
                   Text(
-                    '${milestones.where((m) => m.isCompleted).length} of ${milestones.length} fulfilled goals',
+                    '$completedCount of ${milestones.length} fulfilled goals',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant.withValues(
                         alpha: 0.7,
@@ -71,22 +83,36 @@ class MilestonesBucketSection extends ConsumerWidget {
                 ],
               ),
             ),
-            AppSpacing.hS,
-            FilledButton.tonalIcon(
-              onPressed: () => _showAddMilestoneDialog(context, ref),
-              icon: const Icon(Icons.add_rounded, size: 16),
-              label: const Text('Add Goal', style: TextStyle(fontSize: 12)),
-              style: FilledButton.styleFrom(
-                backgroundColor: brandColors.subtle,
-                foregroundColor: brandColors.milestone,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: AppBorderRadius.pill,
+            Row(
+              children: [
+                if (isPreviewMode && milestones.isNotEmpty) ...[
+                  TextButton.icon(
+                    onPressed: () => context.go(Routes.milestones),
+                    icon: const Icon(Icons.arrow_forward_rounded, size: 14),
+                    label: Text('View Goals (${milestones.length})'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: brandColors.milestone,
+                    ),
+                  ),
+                  AppSpacing.hXS,
+                ],
+                FilledButton.tonalIcon(
+                  onPressed: () => _showAddMilestoneDialog(context, ref),
+                  icon: const Icon(Icons.add_rounded, size: 16),
+                  label: const Text('Add Goal', style: TextStyle(fontSize: 12)),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: brandColors.subtle,
+                    foregroundColor: brandColors.milestone,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: AppBorderRadius.pill,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.m,
+                      vertical: AppSpacing.xs,
+                    ),
+                  ),
                 ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.m,
-                  vertical: AppSpacing.xs,
-                ),
-              ),
+              ],
             ),
           ],
         ),
@@ -99,11 +125,72 @@ class MilestonesBucketSection extends ConsumerWidget {
             badgeColor: brandColors.milestone,
             title: 'No Milestone Buckets Created',
             description:
-                'Define dedicated savings targets for upcoming big purchases (e.g. Rent, Workstation, Vacations) to focus your capital velocity.',
+                'Define dedicated savings targets for upcoming big purchases to focus your capital velocity.',
             actionLabel: 'Create First Milestone Goal',
             onAction: () => _showAddMilestoneDialog(context, ref),
           )
-        else
+        else if (isPreviewMode) ...[
+          for (final milestone in displayed)
+            Padding(
+              key: ValueKey(milestone.id),
+              padding: const EdgeInsets.only(bottom: AppSpacing.m),
+              child: MilestoneCard(
+                milestone: milestone,
+                onAdjustDelta: (delta) {
+                  milestonesNotifier.adjustFunds(milestone.id, delta);
+                  if (delta > 0) {
+                    dashboardNotifier.deductCash(delta);
+                  } else {
+                    dashboardNotifier.addIncome(delta.abs());
+                  }
+                },
+                onSetExactTotal: (newTotal) {
+                  final diff = newTotal - milestone.currentAmount;
+                  milestonesNotifier.setMilestoneAmount(
+                    milestone.id,
+                    newTotal,
+                  );
+                  if (diff > 0) {
+                    dashboardNotifier.deductCash(diff);
+                  } else {
+                    dashboardNotifier.addIncome(diff.abs());
+                  }
+                },
+                onDelete: () =>
+                    milestonesNotifier.deleteMilestone(milestone.id),
+              ),
+            ),
+          if (milestones.length > 3)
+            InkWell(
+              onTap: () => context.go(Routes.milestones),
+              borderRadius: AppBorderRadius.allM,
+              child: Container(
+                padding: const EdgeInsets.all(AppSpacing.m),
+                decoration: BoxDecoration(
+                  color: brandColors.subtle,
+                  borderRadius: AppBorderRadius.allM,
+                  border: Border.all(
+                    color: brandColors.milestone.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.flag_outlined,
+                        size: 16, color: brandColors.milestone),
+                    AppSpacing.hS,
+                    Text(
+                      '+ ${milestones.length - 3} more goals • Open Milestones Hub',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: brandColors.milestone,
+                        fontWeight: AppFontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ] else
           ReorderableListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
