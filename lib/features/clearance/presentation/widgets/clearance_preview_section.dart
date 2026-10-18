@@ -69,8 +69,9 @@ class ClearancePreviewSection extends ConsumerWidget {
                   Text(
                     '$pendingCount active liabilities • $clearedCount settled',
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant
-                          .withValues(alpha: 0.7),
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.7,
+                      ),
                     ),
                   ),
                 ],
@@ -133,8 +134,7 @@ class ClearancePreviewSection extends ConsumerWidget {
                   clearanceNotifier.logPayment(debt.id, amount);
                   dashboardNotifier.deductCash(amount);
                 },
-                onToggleCleared: () =>
-                    clearanceNotifier.toggleCleared(debt.id),
+                onToggleCleared: () => clearanceNotifier.toggleCleared(debt.id),
                 onDelete: () => clearanceNotifier.deleteDebt(debt.id),
               ),
             ),
@@ -154,8 +154,11 @@ class ClearancePreviewSection extends ConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.layers_outlined,
-                        size: 16, color: brandColors.debt),
+                    Icon(
+                      Icons.layers_outlined,
+                      size: 16,
+                      color: brandColors.debt,
+                    ),
                     AppSpacing.hS,
                     Text(
                       '+ ${activeDebts.length - 3} more active accounts • Open Clearance Hub',
@@ -187,8 +190,11 @@ class ClearancePreviewSection extends ConsumerWidget {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.task_alt_rounded,
-                        size: 16, color: brandColors.progress),
+                    Icon(
+                      Icons.task_alt_rounded,
+                      size: 16,
+                      color: brandColors.progress,
+                    ),
                     AppSpacing.hS,
                     Expanded(
                       child: Text(
