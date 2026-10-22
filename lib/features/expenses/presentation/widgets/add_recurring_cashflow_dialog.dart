@@ -6,6 +6,7 @@ import '../../../../shared/design_system/inputs/currency_amount_input.dart';
 import '../../../../shared/design_system/inputs/primary_input.dart';
 import '../../../../shared/design_system/tokens/app_border_radius.dart';
 import '../../../../shared/design_system/tokens/app_font_weight.dart';
+import '../../../../shared/design_system/tokens/app_responsive.dart';
 import '../../../../shared/design_system/tokens/app_spacing.dart';
 import '../../../../shared/design_system/tokens/brand_colors.dart';
 import '../../domain/entities/cashflow_direction.dart';
@@ -188,7 +189,9 @@ class _AddRecurringCashflowDialogState
                       children: [
                         Expanded(
                           child: VelocityPillFilter(
-                            label: 'Monthly Payable / Bill',
+                            label: context.isMobile
+                                ? 'Monthly Payable'
+                                : 'Monthly Payable / Bill',
                             icon: Icons.credit_card_rounded,
                             isSelected:
                                 _selectedDirection ==
@@ -206,7 +209,9 @@ class _AddRecurringCashflowDialogState
                         AppSpacing.hS,
                         Expanded(
                           child: VelocityPillFilter(
-                            label: 'Monthly Inflow / Income',
+                            label: context.isMobile
+                                ? 'Monthly Inflow'
+                                : 'Monthly Inflow / Income',
                             icon: Icons.payments_rounded,
                             isSelected:
                                 _selectedDirection ==

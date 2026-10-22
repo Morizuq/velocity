@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 
 /// Categorizes the origin of a receivable claim.
 enum ReceivableType {

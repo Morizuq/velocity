@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/design_system/buttons/velocity_pill_filter.dart';
 import '../../../shared/design_system/cards/velocity_empty_state_card.dart';
+import '../../../shared/design_system/headers/velocity_page_header.dart';
 import '../../../shared/design_system/tokens/app_border_radius.dart';
-import '../../../shared/design_system/tokens/app_font_weight.dart';
 import '../../../shared/design_system/tokens/app_responsive.dart';
 import '../../../shared/design_system/tokens/app_spacing.dart';
 import '../../../shared/design_system/tokens/brand_colors.dart';
@@ -103,31 +103,11 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Page Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Expenses & Cash Flow',
-                          style: theme.textTheme.headlineMedium?.copyWith(
-                            fontWeight: AppFontWeight.bold,
-                          ),
-                        ),
-                        AppSpacing.vXXS,
-                        Text(
-                          'Track fixed subscriptions, living costs, salary, and recurring runway.',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant
-                                .withValues(alpha: 0.7),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  AppSpacing.hM,
+              VelocityPageHeader(
+                title: 'Expenses & Cash Flow',
+                subtitle:
+                    'Track fixed subscriptions, living costs, salary, and recurring runway.',
+                actions: [
                   FilledButton.icon(
                     onPressed: () => _showAddDialog(context),
                     icon: const Icon(Icons.add_rounded, size: 18),

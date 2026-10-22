@@ -13,6 +13,7 @@ class VelocityPillFilter extends StatelessWidget {
   final Color? activeColor;
   final Color? badgeColor;
   final IconData? icon;
+  final EdgeInsetsGeometry? padding;
 
   const VelocityPillFilter({
     super.key,
@@ -22,6 +23,7 @@ class VelocityPillFilter extends StatelessWidget {
     this.activeColor,
     this.badgeColor,
     this.icon,
+    this.padding,
   });
 
   @override
@@ -30,33 +32,34 @@ class VelocityPillFilter extends StatelessWidget {
     final brandColors = context.brandColors;
     final effectiveActiveColor = activeColor ?? brandColors.accent;
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: AppBorderRadius.pill,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.m,
-          vertical: AppSpacing.xs + 2,
-        ),
-        decoration: BoxDecoration(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isBounded =
+            constraints.hasBoundedWidth &&
+            constraints.maxWidth != double.infinity;
+        final useCompactPadding = isBounded && constraints.maxWidth < 160;
+
+        final effectivePadding =
+            padding ??
+            EdgeInsets.symmetric(
+              horizontal: useCompactPadding ? AppSpacing.s : AppSpacing.m,
+              vertical: AppSpacing.xs + 2,
+            );
+
+        final textStyle = theme.textTheme.labelSmall?.copyWith(
           color: isSelected
-              ? effectiveActiveColor
-              : (badgeColor != null
-                  ? badgeColor!.withValues(alpha: 0.1)
-                  : theme.colorScheme.surfaceContainerHighest
-                      .withValues(alpha: 0.35)),
-          borderRadius: AppBorderRadius.pill,
-          border: Border.all(
-            color: isSelected
-                ? effectiveActiveColor
-                : (badgeColor != null
-                    ? badgeColor!.withValues(alpha: 0.4)
-                    : theme.dividerColor.withValues(alpha: 0.18)),
-          ),
-        ),
-        child: Row(
+              ? Colors.white
+              : (badgeColor ?? theme.colorScheme.onSurfaceVariant),
+          fontWeight: isSelected ? AppFontWeight.bold : AppFontWeight.medium,
+          fontSize: 11,
+          letterSpacing: 0.2,
+        );
+
+        final rowContent = Row(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: isBounded
+              ? MainAxisAlignment.center
+              : MainAxisAlignment.start,
           children: [
             if (icon != null) ...[
               Icon(
@@ -68,21 +71,47 @@ class VelocityPillFilter extends StatelessWidget {
               ),
               AppSpacing.hXXS,
             ],
-            Text(
-              label,
-              style: theme.textTheme.labelSmall?.copyWith(
+            if (isBounded)
+              Flexible(
+                child: Text(
+                  label,
+                  style: textStyle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              )
+            else
+              Text(label, style: textStyle, maxLines: 1),
+          ],
+        );
+
+        return InkWell(
+          onTap: onTap,
+          borderRadius: AppBorderRadius.pill,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: effectivePadding,
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? effectiveActiveColor
+                  : (badgeColor != null
+                        ? badgeColor!.withValues(alpha: 0.1)
+                        : theme.colorScheme.surfaceContainerHighest.withValues(
+                            alpha: 0.35,
+                          )),
+              borderRadius: AppBorderRadius.pill,
+              border: Border.all(
                 color: isSelected
-                    ? Colors.white
-                    : (badgeColor ?? theme.colorScheme.onSurfaceVariant),
-                fontWeight:
-                    isSelected ? AppFontWeight.bold : AppFontWeight.medium,
-                fontSize: 11,
-                letterSpacing: 0.2,
+                    ? effectiveActiveColor
+                    : (badgeColor != null
+                          ? badgeColor!.withValues(alpha: 0.4)
+                          : theme.dividerColor.withValues(alpha: 0.18)),
               ),
             ),
-          ],
-        ),
-      ),
+            child: isBounded ? Center(child: rowContent) : rowContent,
+          ),
+        );
+      },
     );
   }
 }

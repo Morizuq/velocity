@@ -129,4 +129,78 @@ void main() {
     // Verify toggle still exists and state transitioned
     expect(find.byKey(const Key('theme_mode_toggle')), findsOneWidget);
   });
+
+  testWidgets(
+    'Clearance Hub renders on mobile viewport (400x576) with zero overflow',
+    (WidgetTester tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final sharedPreferences = await SharedPreferences.getInstance();
+
+      tester.view.physicalSize = const Size(400, 576);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(sharedPreferences),
+          ],
+          child: const MyApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Navigate to Clearance Hub tab
+      final clearanceTabFinder = find.text('Clearance');
+      expect(clearanceTabFinder, findsOneWidget);
+      await tester.tap(clearanceTabFinder);
+      await tester.pumpAndSettle();
+
+      // Ensure no layout exceptions or RenderFlex overflow occurred
+      expect(tester.takeException(), isNull);
+      expect(find.text('Clearance Hub'), findsOneWidget);
+      expect(find.text('Add Monthly Bill'), findsOneWidget);
+      expect(find.text('Add Debt Account'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Add Subscription / Bill dialog renders on mobile (400x576) without flex overflow',
+    (WidgetTester tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final sharedPreferences = await SharedPreferences.getInstance();
+
+      tester.view.physicalSize = const Size(400, 576);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(sharedPreferences),
+          ],
+          child: const MyApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Navigate to Clearance Hub tab
+      await tester.tap(find.text('Clearance'));
+      await tester.pumpAndSettle();
+
+      // Tap "Add Monthly Bill" button to open dialog
+      final addBillFinder = find.text('Add Monthly Bill');
+      expect(addBillFinder, findsOneWidget);
+      await tester.tap(addBillFinder);
+      await tester.pumpAndSettle();
+
+      // Ensure no layout exception occurred
+      expect(tester.takeException(), isNull);
+      expect(find.text('Add Subscription / Bill'), findsOneWidget);
+      expect(find.text('Monthly Payable'), findsOneWidget);
+      expect(find.text('Monthly Inflow'), findsOneWidget);
+    },
+  );
 }

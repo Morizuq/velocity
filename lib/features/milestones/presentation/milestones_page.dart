@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../shared/design_system/tokens/app_font_weight.dart';
+import '../../../shared/design_system/headers/velocity_page_header.dart';
+import '../../../shared/design_system/tokens/app_border_radius.dart';
 import '../../../shared/design_system/tokens/app_responsive.dart';
 import '../../../shared/design_system/tokens/app_spacing.dart';
 import '../../../shared/design_system/tokens/brand_colors.dart';
@@ -58,31 +59,11 @@ class MilestonesPage extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Page Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Milestone Goals',
-                          style: theme.textTheme.headlineMedium?.copyWith(
-                            fontWeight: AppFontWeight.bold,
-                          ),
-                        ),
-                        AppSpacing.vXXS,
-                        Text(
-                          'Allocate capital toward upcoming major milestones and targets.',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant
-                                .withValues(alpha: 0.7),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  AppSpacing.hM,
+              VelocityPageHeader(
+                title: 'Milestone Goals',
+                subtitle:
+                    'Allocate capital toward upcoming major milestones and targets.',
+                actions: [
                   FilledButton.icon(
                     onPressed: () => _showAddMilestoneDialog(context, ref),
                     icon: const Icon(Icons.add_rounded, size: 18),
@@ -93,6 +74,9 @@ class MilestonesPage extends ConsumerWidget {
                       padding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.l,
                         vertical: AppSpacing.m,
+                      ),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: AppBorderRadius.pill,
                       ),
                     ),
                   ),

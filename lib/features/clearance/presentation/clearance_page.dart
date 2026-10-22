@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/design_system/buttons/velocity_pill_filter.dart';
 import '../../../shared/design_system/cards/velocity_empty_state_card.dart';
+import '../../../shared/design_system/headers/velocity_page_header.dart';
 import '../../../shared/design_system/tokens/app_border_radius.dart';
-import '../../../shared/design_system/tokens/app_font_weight.dart';
 import '../../../shared/design_system/tokens/app_responsive.dart';
 import '../../../shared/design_system/tokens/app_spacing.dart';
 import '../../../shared/design_system/tokens/brand_colors.dart';
@@ -85,7 +85,6 @@ class _ClearancePageState extends ConsumerState<ClearancePage> {
     final brandColors = context.brandColors;
     final debts = ref.watch(clearanceControllerProvider);
     final totalRemaining = ref.watch(totalClearanceDebtProvider);
-    final totalOriginal = ref.watch(totalOriginalDebtProvider);
     final totalPaid = ref.watch(totalDebtPaidProvider);
 
     final monthlyBills = ref.watch(monthlyOutflowsProvider);
@@ -114,68 +113,42 @@ class _ClearancePageState extends ConsumerState<ClearancePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Page Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Clearance Hub',
-                          style: theme.textTheme.headlineMedium?.copyWith(
-                            fontWeight: AppFontWeight.bold,
-                          ),
-                        ),
-                        AppSpacing.vXXS,
-                        Text(
-                          'Track term liabilities and monthly bills (Spotify, Internet, Utilities) with tactical velocity.',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant
-                                .withValues(alpha: 0.7),
-                          ),
-                        ),
-                      ],
+              VelocityPageHeader(
+                title: 'Clearance Hub',
+                subtitle:
+                    'Track term liabilities and monthly bills (Spotify, Internet, Utilities) with tactical velocity.',
+                actions: [
+                  FilledButton.tonalIcon(
+                    onPressed: () => _showAddMonthlyBillDialog(context),
+                    icon: const Icon(Icons.calendar_month_rounded, size: 16),
+                    label: const Text('Add Monthly Bill'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: brandColors.subtle,
+                      foregroundColor: brandColors.accent,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.m,
+                        vertical: AppSpacing.m,
+                      ),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: AppBorderRadius.pill,
+                      ),
                     ),
                   ),
-                  AppSpacing.hM,
-                  Wrap(
-                    spacing: AppSpacing.s,
-                    runSpacing: AppSpacing.xs,
-                    children: [
-                      FilledButton.tonalIcon(
-                        onPressed: () => _showAddMonthlyBillDialog(context),
-                        icon: const Icon(Icons.calendar_month_rounded, size: 16),
-                        label: const Text('Add Monthly Bill'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: brandColors.subtle,
-                          foregroundColor: brandColors.accent,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.m,
-                            vertical: AppSpacing.m,
-                          ),
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: AppBorderRadius.pill,
-                          ),
-                        ),
+                  FilledButton.icon(
+                    onPressed: () => _showAddDebtDialog(context),
+                    icon: const Icon(Icons.add_rounded, size: 18),
+                    label: const Text('Add Debt Account'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: brandColors.debt,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.l,
+                        vertical: AppSpacing.m,
                       ),
-                      FilledButton.icon(
-                        onPressed: () => _showAddDebtDialog(context),
-                        icon: const Icon(Icons.add_rounded, size: 18),
-                        label: const Text('Add Debt Account'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: brandColors.debt,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.l,
-                            vertical: AppSpacing.m,
-                          ),
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: AppBorderRadius.pill,
-                          ),
-                        ),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: AppBorderRadius.pill,
                       ),
-                    ],
+                    ),
                   ),
                 ],
               ),
@@ -253,22 +226,26 @@ class _ClearancePageState extends ConsumerState<ClearancePage> {
               AppSpacing.vL,
 
               // Segmented Tabs: Term Debts vs Monthly Subscriptions & Bills
-              Row(
-                children: [
-                  VelocityPillFilter(
-                    label: 'Term Debts (${debts.length})',
-                    isSelected: _selectedTab == 0,
-                    activeColor: brandColors.debt,
-                    onTap: () => setState(() => _selectedTab = 0),
-                  ),
-                  AppSpacing.hS,
-                  VelocityPillFilter(
-                    label: 'Monthly Bills & Subscriptions (${monthlyBills.length})',
-                    isSelected: _selectedTab == 1,
-                    activeColor: brandColors.accent,
-                    onTap: () => setState(() => _selectedTab = 1),
-                  ),
-                ],
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    VelocityPillFilter(
+                      label: 'Term Debts (${debts.length})',
+                      isSelected: _selectedTab == 0,
+                      activeColor: brandColors.debt,
+                      onTap: () => setState(() => _selectedTab = 0),
+                    ),
+                    AppSpacing.hS,
+                    VelocityPillFilter(
+                      label:
+                          'Monthly Bills & Subscriptions (${monthlyBills.length})',
+                      isSelected: _selectedTab == 1,
+                      activeColor: brandColors.accent,
+                      onTap: () => setState(() => _selectedTab = 1),
+                    ),
+                  ],
+                ),
               ),
               AppSpacing.vL,
 
