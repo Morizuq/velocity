@@ -31,6 +31,7 @@ class AppTheme {
       debt: Color(0xFFE11D48),
       progress: Color(0xFF059669),
       milestone: Color(0xFF0284C7),
+      receivable: Color(0xFFD97706), // Warm Amber/Gold
       surfaceCard: Color(0xFFFFFFFF),
     ),
   );
@@ -58,6 +59,7 @@ class AppTheme {
       debt: Color(0xFFFF5252),      // Neon Debt Red
       progress: Color(0xFF00E676),  // Neon Emerald
       milestone: Color(0xFF00E5FF), // Electric Cyan
+      receivable: Color(0xFFFBBF24), // Neon Gold/Amber
       surfaceCard: Color(0xFF111724), // Sleek obsidian card surface
     ),
   );

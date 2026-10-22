@@ -7,8 +7,11 @@ import '../../../shared/design_system/tokens/financial_number_formatter.dart';
 import '../../assets/presentation/widgets/asset_velocity_tracker.dart';
 import '../../clearance/presentation/controllers/clearance_controller.dart';
 import '../../clearance/presentation/widgets/clearance_preview_section.dart';
+import '../../expenses/presentation/widgets/expenses_preview_section.dart';
 import '../../milestones/presentation/controllers/milestones_controller.dart';
 import '../../milestones/presentation/widgets/milestones_bucket_section.dart';
+import '../../receivables/presentation/controllers/receivables_controller.dart';
+import '../../receivables/presentation/widgets/receivables_preview_section.dart';
 import 'controllers/dashboard_controller.dart';
 import 'widgets/debt_burndown_chart.dart';
 import 'widgets/financial_velocity_donut_chart.dart';
@@ -43,8 +46,10 @@ class DashboardPage extends ConsumerWidget {
     final brandColors = context.brandColors;
     final liquidCash = ref.watch(dashboardControllerProvider);
     final totalDebt = ref.watch(totalClearanceDebtProvider);
+    final totalReceivables = ref.watch(totalReceivablesProvider);
     final totalMilestonesSaved = ref.watch(totalMilestoneSavedProvider);
     final debts = ref.watch(clearanceControllerProvider);
+    final receivables = ref.watch(receivablesControllerProvider);
     final milestones = ref.watch(milestonesControllerProvider);
     final netVelocity = liquidCash - totalDebt;
 
@@ -67,11 +72,11 @@ class DashboardPage extends ConsumerWidget {
               const AssetVelocityTracker(),
               AppSpacing.vL,
 
-              // Four Key Metric KPI Cards (strictly hugging intrinsic content height)
+              // Key Metric KPI Cards
               LayoutBuilder(
                 builder: (context, constraints) {
-                  final isWide = constraints.maxWidth >= 900;
-                  final isMedium = constraints.maxWidth >= 550 && !isWide;
+                  final isWide = constraints.maxWidth >= 1050;
+                  final isMedium = constraints.maxWidth >= 600 && !isWide;
 
                   final liquidCashCard = VelocityMetricCard(
                     title: 'Total Liquid Cash',
@@ -92,6 +97,15 @@ class DashboardPage extends ConsumerWidget {
                         '${debts.where((d) => !d.isCleared).length} Pending Accounts',
                     icon: Icons.credit_card_off_rounded,
                     accentColor: brandColors.debt,
+                  );
+
+                  final receivablesCard = VelocityMetricCard(
+                    title: 'Pending Receivables',
+                    value: FinancialNumberFormatter.format(totalReceivables),
+                    subtitle:
+                        '${receivables.where((r) => !r.isSettled).length} Inflow Claims',
+                    icon: Icons.hourglass_top_rounded,
+                    accentColor: brandColors.receivable,
                   );
 
                   final milestonesCard = VelocityMetricCard(
@@ -123,6 +137,8 @@ class DashboardPage extends ConsumerWidget {
                         AppSpacing.hM,
                         Expanded(child: debtCard),
                         AppSpacing.hM,
+                        Expanded(child: receivablesCard),
+                        AppSpacing.hM,
                         Expanded(child: milestonesCard),
                         AppSpacing.hM,
                         Expanded(child: netPositionCard),
@@ -146,11 +162,13 @@ class DashboardPage extends ConsumerWidget {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(child: milestonesCard),
+                            Expanded(child: receivablesCard),
                             AppSpacing.hM,
-                            Expanded(child: netPositionCard),
+                            Expanded(child: milestonesCard),
                           ],
                         ),
+                        AppSpacing.vM,
+                        netPositionCard,
                       ],
                     );
                   }
@@ -161,6 +179,8 @@ class DashboardPage extends ConsumerWidget {
                       liquidCashCard,
                       AppSpacing.vM,
                       debtCard,
+                      AppSpacing.vM,
+                      receivablesCard,
                       AppSpacing.vM,
                       milestonesCard,
                       AppSpacing.vM,
@@ -203,6 +223,14 @@ class DashboardPage extends ConsumerWidget {
 
               // The Clearance Bucket (Debts & Immediate Dues)
               const ClearancePreviewSection(),
+              AppSpacing.vXL,
+
+              // The Receivables Bucket (Freelance Invoices & Loans)
+              const ReceivablesPreviewSection(),
+              AppSpacing.vXL,
+
+              // Monthly Operating Cadence (Subscriptions, Spotify, Internet & Living Costs)
+              const ExpensesPreviewSection(),
               AppSpacing.vXL,
 
               // The Milestone Bucket (Upcoming Big Purchases)

@@ -27,6 +27,9 @@ class BrandColors extends ThemeExtension<BrandColors> {
   /// Semantic color for milestones and goals (Electric Cyan/Sky).
   final Color milestone;
 
+  /// Semantic color for receivables, freelance invoices, and pending claims (Warm Amber/Gold).
+  final Color receivable;
+
   /// Surface color for elevated glassmorphic dashboard cards.
   final Color surfaceCard;
 
@@ -38,6 +41,7 @@ class BrandColors extends ThemeExtension<BrandColors> {
     required this.debt,
     required this.progress,
     required this.milestone,
+    required this.receivable,
     required this.surfaceCard,
   });
 
@@ -50,6 +54,7 @@ class BrandColors extends ThemeExtension<BrandColors> {
     Color? debt,
     Color? progress,
     Color? milestone,
+    Color? receivable,
     Color? surfaceCard,
   }) {
     return BrandColors(
@@ -60,6 +65,7 @@ class BrandColors extends ThemeExtension<BrandColors> {
       debt: debt ?? this.debt,
       progress: progress ?? this.progress,
       milestone: milestone ?? this.milestone,
+      receivable: receivable ?? this.receivable,
       surfaceCard: surfaceCard ?? this.surfaceCard,
     );
   }
@@ -75,6 +81,7 @@ class BrandColors extends ThemeExtension<BrandColors> {
       debt: Color.lerp(debt, other.debt, t)!,
       progress: Color.lerp(progress, other.progress, t)!,
       milestone: Color.lerp(milestone, other.milestone, t)!,
+      receivable: Color.lerp(receivable, other.receivable, t)!,
       surfaceCard: Color.lerp(surfaceCard, other.surfaceCard, t)!,
     );
   }

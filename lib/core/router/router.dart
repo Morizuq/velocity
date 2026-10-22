@@ -4,6 +4,7 @@ import '../../features/clearance/presentation/clearance_page.dart';
 import '../../features/dashboard/presentation/dashboard_page.dart';
 import '../../features/expenses/presentation/expenses_page.dart';
 import '../../features/milestones/presentation/milestones_page.dart';
+import '../../features/receivables/presentation/receivables_page.dart';
 import '../navigation/app_navigation_shell.dart';
 import 'routes.dart';
 
@@ -29,6 +30,14 @@ final router = GoRouter(
             GoRoute(
               path: Routes.clearance,
               builder: (context, state) => const ClearancePage(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: Routes.receivables,
+              builder: (context, state) => const ReceivablesPage(),
             ),
           ],
         ),

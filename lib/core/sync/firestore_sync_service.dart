@@ -4,7 +4,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/assets/domain/entities/asset_entity.dart';
 import '../../features/clearance/domain/entities/debt_entity.dart';
+import '../../features/expenses/domain/entities/recurring_cashflow_entity.dart';
 import '../../features/milestones/domain/entities/milestone_entity.dart';
+import '../../features/receivables/domain/entities/receivable_entity.dart';
 
 /// Service responsible for real-time bi-directional synchronization
 /// between local state and Cloud Firestore under users/{uid}/...
@@ -31,6 +33,13 @@ class FirestoreSyncService {
 
   CollectionReference<Map<String, dynamic>> _userAssets(String uid) =>
       _db.collection('users').doc(uid).collection('assets');
+
+  CollectionReference<Map<String, dynamic>> _userReceivables(String uid) =>
+      _db.collection('users').doc(uid).collection('receivables');
+
+  CollectionReference<Map<String, dynamic>> _userRecurringCashflows(
+    String uid,
+  ) => _db.collection('users').doc(uid).collection('recurring_cashflows');
 
   DocumentReference<Map<String, dynamic>> _userOverview(String uid) =>
       _db.collection('users').doc(uid).collection('profile').doc('overview');
@@ -155,6 +164,94 @@ class FirestoreSyncService {
     if (!_canSync) return;
     try {
       await _userAssets(uid).doc(assetId).delete();
+    } catch (_) {}
+  }
+
+  // ================= RECEIVABLES =================
+
+  Stream<List<ReceivableEntity>> watchReceivables(String uid) {
+    if (!_canSync) return const Stream.empty();
+    try {
+      return _userReceivables(uid).snapshots().map((snapshot) {
+        final docs = snapshot.docs.toList();
+        docs.sort((a, b) {
+          final aOrder = a.data()['orderIndex'] as num? ?? 999999;
+          final bOrder = b.data()['orderIndex'] as num? ?? 999999;
+          return aOrder.compareTo(bOrder);
+        });
+        return docs.map((doc) => ReceivableEntity.fromMap(doc.data())).toList();
+      });
+    } catch (_) {
+      return const Stream.empty();
+    }
+  }
+
+  Future<void> syncReceivables(
+    String uid,
+    List<ReceivableEntity> receivables,
+  ) async {
+    if (!_canSync) return;
+    try {
+      final batch = _db.batch();
+      final col = _userReceivables(uid);
+      for (int i = 0; i < receivables.length; i++) {
+        final data = receivables[i].toMap();
+        data['orderIndex'] = i;
+        batch.set(col.doc(receivables[i].id), data, SetOptions(merge: true));
+      }
+      await batch.commit();
+    } catch (_) {}
+  }
+
+  Future<void> deleteReceivable(String uid, String receivableId) async {
+    if (!_canSync) return;
+    try {
+      await _userReceivables(uid).doc(receivableId).delete();
+    } catch (_) {}
+  }
+
+  // ================= RECURRING CASHFLOWS =================
+
+  Stream<List<RecurringCashflowEntity>> watchRecurringCashflows(String uid) {
+    if (!_canSync) return const Stream.empty();
+    try {
+      return _userRecurringCashflows(uid).snapshots().map((snapshot) {
+        final docs = snapshot.docs.toList();
+        docs.sort((a, b) {
+          final aOrder = a.data()['orderIndex'] as num? ?? 999999;
+          final bOrder = b.data()['orderIndex'] as num? ?? 999999;
+          return aOrder.compareTo(bOrder);
+        });
+        return docs
+            .map((doc) => RecurringCashflowEntity.fromMap(doc.data()))
+            .toList();
+      });
+    } catch (_) {
+      return const Stream.empty();
+    }
+  }
+
+  Future<void> syncRecurringCashflows(
+    String uid,
+    List<RecurringCashflowEntity> items,
+  ) async {
+    if (!_canSync) return;
+    try {
+      final batch = _db.batch();
+      final col = _userRecurringCashflows(uid);
+      for (int i = 0; i < items.length; i++) {
+        final data = items[i].toMap();
+        data['orderIndex'] = i;
+        batch.set(col.doc(items[i].id), data, SetOptions(merge: true));
+      }
+      await batch.commit();
+    } catch (_) {}
+  }
+
+  Future<void> deleteRecurringCashflow(String uid, String id) async {
+    if (!_canSync) return;
+    try {
+      await _userRecurringCashflows(uid).doc(id).delete();
     } catch (_) {}
   }
 
