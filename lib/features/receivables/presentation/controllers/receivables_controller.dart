@@ -155,14 +155,62 @@ class ReceivablesController extends Notifier<List<ReceivableEntity>> {
   }
 
   /// Toggles the settled status of a receivable.
+  /// When un-settling, resets amountReceived to 0.0 so remaining balance is restored.
   void toggleSettled(String id) {
     final updated = [
       for (final item in state)
         if (item.id == id)
           item.copyWith(
             isSettled: !item.isSettled,
-            amountReceived: !item.isSettled ? item.totalAmount : item.amountReceived,
+            amountReceived: !item.isSettled ? item.totalAmount : 0.0,
           )
+        else
+          item,
+    ];
+    state = updated;
+    _persist(updated);
+  }
+
+  /// Restores a settled receivable back to active status.
+  void undoSettled(String id, [double newAmountReceived = 0.0]) {
+    final updated = [
+      for (final item in state)
+        if (item.id == id)
+          item.copyWith(
+            isSettled: false,
+            amountReceived: newAmountReceived.clamp(0.0, item.totalAmount),
+          )
+        else
+          item,
+    ];
+    state = updated;
+    _persist(updated);
+  }
+
+  /// Updates debtor, total amount, amount received, or due date of an existing receivable.
+  void editReceivable({
+    required String id,
+    String? debtor,
+    double? totalAmount,
+    double? amountReceived,
+    DateTime? dueDate,
+    bool clearDueDate = false,
+  }) {
+    final updated = [
+      for (final item in state)
+        if (item.id == id)
+          () {
+            final newTotal = totalAmount ?? item.totalAmount;
+            final newReceived = amountReceived ?? item.amountReceived;
+            final isSettled = newReceived >= newTotal && newTotal > 0;
+            return item.copyWith(
+              debtor: debtor ?? item.debtor,
+              totalAmount: newTotal,
+              amountReceived: newReceived.clamp(0.0, newTotal),
+              isSettled: isSettled,
+              dueDate: clearDueDate ? null : (dueDate ?? item.dueDate),
+            );
+          }()
         else
           item,
     ];

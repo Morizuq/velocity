@@ -110,16 +110,66 @@ class ClearanceController extends Notifier<List<DebtEntity>> {
   }
 
   /// Toggles whether a debt is marked as fully cleared.
+  /// When un-clearing, resets amountPaid to 0.0 so remaining balance is restored.
   void toggleCleared(String debtId) {
     final updated = [
       for (final debt in state)
         if (debt.id == debtId)
           debt.copyWith(
             isCleared: !debt.isCleared,
-            amountPaid: !debt.isCleared ? debt.totalOwed : debt.amountPaid,
+            amountPaid: !debt.isCleared ? debt.totalOwed : 0.0,
           )
         else
           debt,
+    ];
+    state = updated;
+    _persist(updated);
+  }
+
+  /// Restores a cleared debt back to active status with an optional custom paid balance.
+  void undoCleared(String debtId, [double newAmountPaid = 0.0]) {
+    final updated = [
+      for (final debt in state)
+        if (debt.id == debtId)
+          debt.copyWith(
+            isCleared: false,
+            amountPaid: newAmountPaid.clamp(0.0, debt.totalOwed),
+          )
+        else
+          debt,
+    ];
+    state = updated;
+    _persist(updated);
+  }
+
+  /// Updates creditor, total owed, amount paid, monthly payment, or due date of an existing debt.
+  void editDebt({
+    required String debtId,
+    String? creditor,
+    double? totalOwed,
+    double? amountPaid,
+    double? monthlyPayment,
+    DateTime? dueDate,
+    bool clearDueDate = false,
+  }) {
+    final updated = [
+      for (final d in state)
+        if (d.id == debtId)
+          () {
+            final newTotal = totalOwed ?? d.totalOwed;
+            final newPaid = amountPaid ?? d.amountPaid;
+            final isCleared = newPaid >= newTotal && newTotal > 0;
+            return d.copyWith(
+              creditor: creditor ?? d.creditor,
+              totalOwed: newTotal,
+              amountPaid: newPaid.clamp(0.0, newTotal),
+              monthlyPayment: monthlyPayment ?? d.monthlyPayment,
+              isCleared: isCleared,
+              dueDate: clearDueDate ? null : (dueDate ?? d.dueDate),
+            );
+          }()
+        else
+          d,
     ];
     state = updated;
     _persist(updated);

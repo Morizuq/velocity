@@ -62,7 +62,7 @@ class _HeaderDataSyncButtonState extends State<HeaderDataSyncButton> {
               splashColor: brandColors.accent.withValues(alpha: 0.15),
               highlightColor: brandColors.accent.withValues(alpha: 0.08),
               child: Center(
-                child: Icon(Icons.sync_rounded, size: 16, color: iconColor),
+                child: Icon(Icons.sync, size: 16, color: iconColor),
               ),
             ),
           ),

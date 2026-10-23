@@ -96,6 +96,186 @@ class _ClearancePageState extends ConsumerState<ClearancePage> {
     );
   }
 
+  void _undoClearance(DebtEntity debt) {
+    ref.read(clearanceControllerProvider.notifier).undoCleared(debt.id);
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Restored ${debt.creditor} to active debts'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _editDebt(DebtEntity debt) {
+    final tokens = context.tokens;
+    final creditorController = TextEditingController(text: debt.creditor);
+    final totalController = TextEditingController(
+      text: debt.totalOwed.toStringAsFixed(debt.totalOwed.truncateToDouble() == debt.totalOwed ? 0 : 2),
+    );
+    final paidController = TextEditingController(
+      text: debt.amountPaid.toStringAsFixed(debt.amountPaid.truncateToDouble() == debt.amountPaid ? 0 : 2),
+    );
+    final monthlyController = TextEditingController(
+      text: debt.monthlyPayment > 0
+          ? debt.monthlyPayment.toStringAsFixed(debt.monthlyPayment.truncateToDouble() == debt.monthlyPayment ? 0 : 2)
+          : '',
+    );
+    DateTime? dueDate = debt.dueDate;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final dateFormat = DateFormat('yyyy-MM-dd');
+
+          return AlertDialog(
+            backgroundColor: tokens.surfaceColor,
+            shape: RoundedRectangleBorder(borderRadius: AppBorderRadius.allCard),
+            title: Text(
+              'Edit Debt',
+              style: tokens.bricolage(fontSize: 18, fontWeight: FontWeight.w700),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: creditorController,
+                    decoration: InputDecoration(
+                      labelText: 'Creditor',
+                      filled: true,
+                      fillColor: tokens.bgColor,
+                      border: OutlineInputBorder(
+                        borderRadius: AppBorderRadius.allInput,
+                        borderSide: BorderSide(color: tokens.lineColor),
+                      ),
+                    ),
+                  ),
+                  AppSpacing.vXS,
+                  TextField(
+                    controller: totalController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      labelText: 'Total Owed (₦)',
+                      filled: true,
+                      fillColor: tokens.bgColor,
+                      border: OutlineInputBorder(
+                        borderRadius: AppBorderRadius.allInput,
+                        borderSide: BorderSide(color: tokens.lineColor),
+                      ),
+                    ),
+                  ),
+                  AppSpacing.vXS,
+                  TextField(
+                    controller: paidController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      labelText: 'Amount Paid (₦)',
+                      filled: true,
+                      fillColor: tokens.bgColor,
+                      border: OutlineInputBorder(
+                        borderRadius: AppBorderRadius.allInput,
+                        borderSide: BorderSide(color: tokens.lineColor),
+                      ),
+                    ),
+                  ),
+                  AppSpacing.vXS,
+                  TextField(
+                    controller: monthlyController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      labelText: 'Monthly Payment (₦)',
+                      filled: true,
+                      fillColor: tokens.bgColor,
+                      border: OutlineInputBorder(
+                        borderRadius: AppBorderRadius.allInput,
+                        borderSide: BorderSide(color: tokens.lineColor),
+                      ),
+                    ),
+                  ),
+                  AppSpacing.vXS,
+                  InkWell(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: dueDate ?? DateTime.now().add(const Duration(days: 30)),
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2035),
+                      );
+                      if (picked != null) {
+                        setDialogState(() => dueDate = picked);
+                      }
+                    },
+                    borderRadius: AppBorderRadius.allInput,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.cardGap, vertical: AppSpacing.cardGap),
+                      decoration: BoxDecoration(
+                        color: tokens.bgColor,
+                        border: Border.all(color: tokens.lineColor),
+                        borderRadius: AppBorderRadius.allInput,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            dueDate != null ? 'Due: ${dateFormat.format(dueDate!)}' : 'No due date (optional)',
+                            style: tokens.figtree(
+                              fontSize: 14,
+                              color: dueDate != null ? tokens.inkColor : tokens.muteColor,
+                            ),
+                          ),
+                          if (dueDate != null)
+                            GestureDetector(
+                              onTap: () => setDialogState(() => dueDate = null),
+                              child: Icon(Icons.clear, size: 16, color: tokens.muteColor),
+                            )
+                          else
+                            Icon(Icons.calendar_today_rounded, size: 18, color: tokens.muteColor),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text('Cancel', style: tokens.figtree(color: tokens.muteColor)),
+              ),
+              VelocityButton.primary(
+                onPressed: () {
+                  final creditor = creditorController.text.trim();
+                  final total = double.tryParse(totalController.text.replaceAll(',', '').trim()) ?? debt.totalOwed;
+                  final paid = double.tryParse(paidController.text.replaceAll(',', '').trim()) ?? debt.amountPaid;
+                  final monthly = double.tryParse(monthlyController.text.replaceAll(',', '').trim()) ?? debt.monthlyPayment;
+
+                  if (creditor.isNotEmpty && total > 0) {
+                    ref.read(clearanceControllerProvider.notifier).editDebt(
+                          debtId: debt.id,
+                          creditor: creditor,
+                          totalOwed: total,
+                          amountPaid: paid,
+                          monthlyPayment: monthly,
+                          dueDate: dueDate,
+                          clearDueDate: dueDate == null,
+                        );
+                    Navigator.of(ctx).pop();
+                  }
+                },
+                label: 'Save',
+                height: 36,
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   Future<void> _pickDueDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -421,8 +601,9 @@ class _ClearancePageState extends ConsumerState<ClearancePage> {
           VelocityActionRow(
             index: index,
             totalCount: totalCount,
-            primaryActionLabel: left > 0 ? 'Log payment' : null,
-            onPrimaryAction: left > 0 ? () => _logPayment(debt) : null,
+            primaryActionLabel: isCleared ? 'Undo cleared' : (left > 0 ? 'Log payment' : null),
+            onPrimaryAction: isCleared ? () => _undoClearance(debt) : (left > 0 ? () => _logPayment(debt) : null),
+            onEdit: () => _editDebt(debt),
             onRemove: () => _deleteWithUndo(debt, index),
             onMoveTop: () =>
                 ref.read(clearanceControllerProvider.notifier).move(index, 'top'),

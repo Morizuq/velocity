@@ -12,6 +12,7 @@ class VelocityActionRow extends StatelessWidget {
   final int totalCount;
   final String? primaryActionLabel;
   final VoidCallback? onPrimaryAction;
+  final VoidCallback? onEdit;
   final VoidCallback onRemove;
   final VoidCallback? onMoveTop;
   final VoidCallback? onMoveUp;
@@ -24,6 +25,7 @@ class VelocityActionRow extends StatelessWidget {
     required this.totalCount,
     this.primaryActionLabel,
     this.onPrimaryAction,
+    this.onEdit,
     required this.onRemove,
     this.onMoveTop,
     this.onMoveUp,
@@ -63,6 +65,12 @@ class VelocityActionRow extends StatelessWidget {
                 label: primaryActionLabel!,
                 height: 28.0,
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              ),
+            if (onEdit != null)
+              VelocityButton.subtle(
+                onPressed: onEdit,
+                label: 'Edit',
+                height: 28.0,
               ),
             VelocityButton.subtle(
               onPressed: onRemove,

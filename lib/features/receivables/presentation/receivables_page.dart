@@ -97,6 +97,165 @@ class _ReceivablesPageState extends ConsumerState<ReceivablesPage> {
     );
   }
 
+  void _undoSettled(ReceivableEntity receivable) {
+    ref.read(receivablesControllerProvider.notifier).undoSettled(receivable.id);
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Restored ${receivable.debtor} to active receivables'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _editReceivable(ReceivableEntity receivable) {
+    final tokens = context.tokens;
+    final debtorController = TextEditingController(text: receivable.debtor);
+    final totalController = TextEditingController(
+      text: receivable.totalAmount.toStringAsFixed(receivable.totalAmount.truncateToDouble() == receivable.totalAmount ? 0 : 2),
+    );
+    final receivedController = TextEditingController(
+      text: receivable.amountReceived.toStringAsFixed(receivable.amountReceived.truncateToDouble() == receivable.amountReceived ? 0 : 2),
+    );
+    DateTime? dueDate = receivable.dueDate;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final dateFormat = DateFormat('yyyy-MM-dd');
+
+          return AlertDialog(
+            backgroundColor: tokens.surfaceColor,
+            shape: RoundedRectangleBorder(borderRadius: AppBorderRadius.allCard),
+            title: Text(
+              'Edit Receivable',
+              style: tokens.bricolage(fontSize: 18, fontWeight: FontWeight.w700),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: debtorController,
+                    decoration: InputDecoration(
+                      labelText: 'Debtor / Payer',
+                      filled: true,
+                      fillColor: tokens.bgColor,
+                      border: OutlineInputBorder(
+                        borderRadius: AppBorderRadius.allInput,
+                        borderSide: BorderSide(color: tokens.lineColor),
+                      ),
+                    ),
+                  ),
+                  AppSpacing.vXS,
+                  TextField(
+                    controller: totalController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      labelText: 'Total Amount (₦)',
+                      filled: true,
+                      fillColor: tokens.bgColor,
+                      border: OutlineInputBorder(
+                        borderRadius: AppBorderRadius.allInput,
+                        borderSide: BorderSide(color: tokens.lineColor),
+                      ),
+                    ),
+                  ),
+                  AppSpacing.vXS,
+                  TextField(
+                    controller: receivedController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      labelText: 'Amount Received (₦)',
+                      filled: true,
+                      fillColor: tokens.bgColor,
+                      border: OutlineInputBorder(
+                        borderRadius: AppBorderRadius.allInput,
+                        borderSide: BorderSide(color: tokens.lineColor),
+                      ),
+                    ),
+                  ),
+                  AppSpacing.vXS,
+                  InkWell(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: dueDate ?? DateTime.now().add(const Duration(days: 14)),
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2035),
+                      );
+                      if (picked != null) {
+                        setDialogState(() => dueDate = picked);
+                      }
+                    },
+                    borderRadius: AppBorderRadius.allInput,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.cardGap, vertical: AppSpacing.cardGap),
+                      decoration: BoxDecoration(
+                        color: tokens.bgColor,
+                        border: Border.all(color: tokens.lineColor),
+                        borderRadius: AppBorderRadius.allInput,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            dueDate != null ? 'Due: ${dateFormat.format(dueDate!)}' : 'No due date (optional)',
+                            style: tokens.figtree(
+                              fontSize: 14,
+                              color: dueDate != null ? tokens.inkColor : tokens.muteColor,
+                            ),
+                          ),
+                          if (dueDate != null)
+                            GestureDetector(
+                              onTap: () => setDialogState(() => dueDate = null),
+                              child: Icon(Icons.clear, size: 16, color: tokens.muteColor),
+                            )
+                          else
+                            Icon(Icons.calendar_today_rounded, size: 18, color: tokens.muteColor),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text('Cancel', style: tokens.figtree(color: tokens.muteColor)),
+              ),
+              VelocityButton.primary(
+                onPressed: () {
+                  final debtor = debtorController.text.trim();
+                  final total = double.tryParse(totalController.text.replaceAll(',', '').trim()) ?? receivable.totalAmount;
+                  final received = double.tryParse(receivedController.text.replaceAll(',', '').trim()) ?? receivable.amountReceived;
+
+                  if (debtor.isNotEmpty && total > 0) {
+                    ref.read(receivablesControllerProvider.notifier).editReceivable(
+                          id: receivable.id,
+                          debtor: debtor,
+                          totalAmount: total,
+                          amountReceived: received,
+                          dueDate: dueDate,
+                          clearDueDate: dueDate == null,
+                        );
+                    Navigator.of(ctx).pop();
+                  }
+                },
+                label: 'Save',
+                height: 36,
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   Future<void> _pickDueDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -392,8 +551,9 @@ class _ReceivablesPageState extends ConsumerState<ReceivablesPage> {
           VelocityActionRow(
             index: index,
             totalCount: totalCount,
-            primaryActionLabel: left > 0 ? 'Log payment received' : null,
-            onPrimaryAction: left > 0 ? () => _logPaymentReceived(receivable) : null,
+            primaryActionLabel: isSettled ? 'Undo settled' : (left > 0 ? 'Log payment received' : null),
+            onPrimaryAction: isSettled ? () => _undoSettled(receivable) : (left > 0 ? () => _logPaymentReceived(receivable) : null),
+            onEdit: () => _editReceivable(receivable),
             onRemove: () => _deleteWithUndo(receivable, index),
             onMoveTop: () =>
                 ref.read(receivablesControllerProvider.notifier).move(index, 'top'),

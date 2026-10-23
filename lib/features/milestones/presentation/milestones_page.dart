@@ -89,6 +89,102 @@ class _MilestonesPageState extends ConsumerState<MilestonesPage> {
     );
   }
 
+  void _editGoal(MilestoneEntity goal) {
+    final tokens = context.tokens;
+    final titleController = TextEditingController(text: goal.title);
+    final targetController = TextEditingController(
+      text: goal.targetAmount.toStringAsFixed(goal.targetAmount.truncateToDouble() == goal.targetAmount ? 0 : 2),
+    );
+    final savedController = TextEditingController(
+      text: goal.currentAmount.toStringAsFixed(goal.currentAmount.truncateToDouble() == goal.currentAmount ? 0 : 2),
+    );
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: tokens.surfaceColor,
+        shape: RoundedRectangleBorder(borderRadius: AppBorderRadius.allCard),
+        title: Text(
+          'Edit Goal',
+          style: tokens.bricolage(fontSize: 18, fontWeight: FontWeight.w700),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: InputDecoration(
+                  labelText: 'Goal Title',
+                  filled: true,
+                  fillColor: tokens.bgColor,
+                  border: OutlineInputBorder(
+                    borderRadius: AppBorderRadius.allInput,
+                    borderSide: BorderSide(color: tokens.lineColor),
+                  ),
+                ),
+              ),
+              AppSpacing.vXS,
+              TextField(
+                controller: targetController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: 'Target Budget (₦)',
+                  filled: true,
+                  fillColor: tokens.bgColor,
+                  border: OutlineInputBorder(
+                    borderRadius: AppBorderRadius.allInput,
+                    borderSide: BorderSide(color: tokens.lineColor),
+                  ),
+                ),
+              ),
+              AppSpacing.vXS,
+              TextField(
+                controller: savedController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: 'Saved so far (₦)',
+                  filled: true,
+                  fillColor: tokens.bgColor,
+                  border: OutlineInputBorder(
+                    borderRadius: AppBorderRadius.allInput,
+                    borderSide: BorderSide(color: tokens.lineColor),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text('Cancel', style: tokens.figtree(color: tokens.muteColor)),
+          ),
+          VelocityButton.primary(
+            onPressed: () {
+              final title = titleController.text.trim();
+              final target = double.tryParse(targetController.text.replaceAll(',', '').trim()) ?? goal.targetAmount;
+              final saved = double.tryParse(savedController.text.replaceAll(',', '').trim()) ?? goal.currentAmount;
+
+              if (title.isNotEmpty && target > 0) {
+                ref.read(milestonesControllerProvider.notifier).editMilestone(
+                      milestoneId: goal.id,
+                      title: title,
+                      targetAmount: target,
+                      currentAmount: saved,
+                    );
+                Navigator.of(ctx).pop();
+              }
+            },
+            label: 'Save',
+            height: 36,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
@@ -284,6 +380,7 @@ class _MilestonesPageState extends ConsumerState<MilestonesPage> {
             totalCount: totalCount,
             primaryActionLabel: left > 0 ? 'Add savings' : null,
             onPrimaryAction: left > 0 ? () => _addSavings(goal) : null,
+            onEdit: () => _editGoal(goal),
             onRemove: () => _deleteWithUndo(goal, index),
             onMoveTop: () =>
                 ref.read(milestonesControllerProvider.notifier).move(index, 'top'),

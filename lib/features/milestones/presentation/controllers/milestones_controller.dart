@@ -161,6 +161,33 @@ class MilestonesController extends Notifier<List<MilestoneEntity>> {
     _persist(updated);
   }
 
+  /// Updates target budget amount, accumulated savings, or title of an existing milestone.
+  void editMilestone({
+    required String milestoneId,
+    String? title,
+    double? targetAmount,
+    double? currentAmount,
+  }) {
+    final updated = [
+      for (final m in state)
+        if (m.id == milestoneId)
+          () {
+            final newTarget = targetAmount ?? m.targetAmount;
+            final newCurrent = currentAmount ?? m.currentAmount;
+            return m.copyWith(
+              title: title ?? m.title,
+              targetAmount: newTarget,
+              currentAmount: newCurrent.clamp(0.0, newTarget),
+              isCompleted: newCurrent >= newTarget && newTarget > 0,
+            );
+          }()
+        else
+          m,
+    ];
+    state = updated;
+    _persist(updated);
+  }
+
   /// Restores a deleted milestone (for Undo toast).
   void restoreMilestone(MilestoneEntity milestone, int targetIndex) {
     final list = List<MilestoneEntity>.from(state);
