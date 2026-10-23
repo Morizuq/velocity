@@ -119,32 +119,45 @@ class VelocityButton extends StatelessWidget {
 
     switch (variant) {
       case VelocityButtonVariant.primary:
-        backgroundColor = isEnabled ? tokens.accentColor : tokens.accentColor.withValues(alpha: 0.5);
+        backgroundColor = isEnabled
+            ? tokens.accentColor
+            : tokens.accentColor.withValues(alpha: 0.5);
         foregroundColor = tokens.bgColor;
         borderSide = BorderSide.none;
         break;
 
       case VelocityButtonVariant.soft:
-        backgroundColor = isEnabled ? tokens.softColor : tokens.softColor.withValues(alpha: 0.5);
+        backgroundColor = isEnabled
+            ? tokens.softColor
+            : tokens.softColor.withValues(alpha: 0.5);
         foregroundColor = tokens.accentColor;
         borderSide = BorderSide.none;
         break;
 
       case VelocityButtonVariant.ghost:
         backgroundColor = Colors.transparent;
-        foregroundColor = isEnabled ? tokens.muteColor : tokens.muteColor.withValues(alpha: 0.5);
+        foregroundColor = isEnabled
+            ? tokens.muteColor
+            : tokens.muteColor.withValues(alpha: 0.5);
         borderSide = BorderSide(color: tokens.lineColor, width: 1.0);
         break;
 
       case VelocityButtonVariant.danger:
         backgroundColor = Colors.transparent;
-        foregroundColor = isEnabled ? tokens.outColor : tokens.outColor.withValues(alpha: 0.5);
-        borderSide = BorderSide(color: tokens.outColor.withValues(alpha: 0.6), width: 1.0);
+        foregroundColor = isEnabled
+            ? tokens.outColor
+            : tokens.outColor.withValues(alpha: 0.5);
+        borderSide = BorderSide(
+          color: tokens.outColor.withValues(alpha: 0.6),
+          width: 1.0,
+        );
         break;
 
       case VelocityButtonVariant.subtle:
         backgroundColor = Colors.transparent;
-        foregroundColor = isEnabled ? tokens.muteColor : tokens.muteColor.withValues(alpha: 0.5);
+        foregroundColor = isEnabled
+            ? tokens.muteColor
+            : tokens.muteColor.withValues(alpha: 0.5);
         borderSide = BorderSide.none;
         break;
     }
@@ -162,27 +175,37 @@ class VelocityButton extends StatelessWidget {
               valueColor: AlwaysStoppedAnimation<Color>(foregroundColor),
             ),
           ),
-          AppSpacing.hXS,
+          if (label.isNotEmpty) AppSpacing.hXS,
         ] else if (icon != null) ...[
           Icon(icon, size: 16, color: foregroundColor),
-          AppSpacing.hXS,
+          if (label.isNotEmpty) AppSpacing.hXS,
         ],
-        Text(
-          label,
-          style: tokens.figtree(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: foregroundColor,
+        if (label.isNotEmpty)
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: tokens.figtree(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: foregroundColor,
+              ),
+            ),
           ),
-        ),
       ],
     );
 
-    final resolvedPadding = padding ??
-        EdgeInsets.symmetric(
-          horizontal: variant == VelocityButtonVariant.subtle ? AppSpacing.xs : AppSpacing.m,
-          vertical: AppSpacing.xs,
-        );
+    final resolvedPadding =
+        padding ??
+        (label.isEmpty
+            ? const EdgeInsets.symmetric(horizontal: 8, vertical: 6)
+            : EdgeInsets.symmetric(
+                horizontal: variant == VelocityButtonVariant.subtle
+                    ? AppSpacing.xs
+                    : (isFullWidth ? AppSpacing.s : AppSpacing.m),
+                vertical: AppSpacing.xs,
+              ));
 
     Widget button = Material(
       color: backgroundColor,
@@ -196,7 +219,9 @@ class VelocityButton extends StatelessWidget {
         child: Container(
           constraints: BoxConstraints(
             minHeight: height,
-            minWidth: 44.0, // Minimum accessible touch target
+            minWidth: label.isEmpty
+                ? height
+                : 44.0, // Minimum accessible touch target
           ),
           padding: resolvedPadding,
           alignment: Alignment.center,

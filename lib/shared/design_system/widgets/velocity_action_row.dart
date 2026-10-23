@@ -37,66 +37,66 @@ class VelocityActionRow extends StatelessWidget {
     final isFirst = index == 0;
     final isLast = index == totalCount - 1;
 
-    return Row(
+    return Wrap(
+      alignment: WrapAlignment.spaceBetween,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: AppSpacing.xs,
+      runSpacing: AppSpacing.xs,
       children: [
-        // Priority Rank Label
-        Text(
-          isFirst ? 'Top priority' : 'Priority ${index + 1}',
-          style: tokens.figtree(
-            fontSize: 13,
-            fontWeight: isFirst ? FontWeight.w600 : FontWeight.w500,
-            color: isFirst ? tokens.accentColor : tokens.muteColor,
-          ),
-        ),
-        AppSpacing.hXS,
-
-        // Optional Primary Action (Log payment / Add savings)
-        if (primaryActionLabel != null && onPrimaryAction != null) ...[
-          VelocityButton.soft(
-            onPressed: onPrimaryAction,
-            label: primaryActionLabel!,
-            height: 30.0,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 10,
-              vertical: AppSpacing.xxs,
+        // Left Actions: Priority Rank, Primary Action (Log payment / Add savings), Remove
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: AppSpacing.xs,
+          runSpacing: AppSpacing.xxs,
+          children: [
+            Text(
+              isFirst ? 'Top priority' : 'Priority ${index + 1}',
+              style: tokens.figtree(
+                fontSize: 13,
+                fontWeight: isFirst ? FontWeight.w600 : FontWeight.w500,
+                color: isFirst ? tokens.accentColor : tokens.muteColor,
+              ),
             ),
-          ),
-          AppSpacing.hXXS,
-        ],
-
-        // Remove Button
-        VelocityButton.subtle(
-          onPressed: onRemove,
-          label: 'Remove',
-          height: 30.0,
+            if (primaryActionLabel != null && onPrimaryAction != null)
+              VelocityButton.soft(
+                onPressed: onPrimaryAction,
+                label: primaryActionLabel!,
+                height: 28.0,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              ),
+            VelocityButton.subtle(
+              onPressed: onRemove,
+              label: 'Remove',
+              height: 28.0,
+            ),
+          ],
         ),
 
-        const Spacer(),
-
-        // Reorder Move Buttons (Top, ↑, ↓, Drag Grip)
-        if (totalCount > 1) ...[
-          _MoveButton(
-            label: 'Top',
-            onTap: isFirst ? null : onMoveTop,
-            tooltip: 'Move to top',
+        // Right Actions: Reorder Move Buttons (Top, ↑, ↓, Drag Grip)
+        if (totalCount > 1)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _MoveButton(
+                label: 'Top',
+                onTap: isFirst ? null : onMoveTop,
+                tooltip: 'Move to top',
+              ),
+              AppSpacing.hXXS,
+              _MoveButton(
+                label: '↑',
+                onTap: isFirst ? null : onMoveUp,
+                tooltip: 'Move up',
+              ),
+              AppSpacing.hXXS,
+              _MoveButton(
+                label: '↓',
+                onTap: isLast ? null : onMoveDown,
+                tooltip: 'Move down',
+              ),
+              if (dragHandle != null) ...[AppSpacing.hXXS, dragHandle!],
+            ],
           ),
-          AppSpacing.hXXS,
-          _MoveButton(
-            label: '↑',
-            onTap: isFirst ? null : onMoveUp,
-            tooltip: 'Move up',
-          ),
-          AppSpacing.hXXS,
-          _MoveButton(
-            label: '↓',
-            onTap: isLast ? null : onMoveDown,
-            tooltip: 'Move down',
-          ),
-          if (dragHandle != null) ...[
-            AppSpacing.hXXS,
-            dragHandle!,
-          ],
-        ],
       ],
     );
   }

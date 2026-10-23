@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/widgets/user_profile_pill.dart';
-import '../../shared/design_system/buttons/velocity_button.dart';
+import '../../features/dashboard/presentation/widgets/theme_mode_toggle.dart';
 import '../../shared/design_system/tokens/app_border_radius.dart';
 import '../../shared/design_system/tokens/app_spacing.dart';
-import '../../shared/design_system/widgets/velocity_data_export_import.dart';
-import '../theme/theme_mode_notifier.dart';
 import '../theme/velocity_tokens.dart';
+import 'widgets/header_data_sync_button.dart';
 
 /// Navigation shell adhering strictly to the Velocity Redesign specification:
 /// - Max-width 880px container
@@ -31,7 +30,6 @@ class AppNavigationShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tokens = context.tokens;
     final currentIndex = navigationShell.currentIndex;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: tokens.bg,
@@ -49,73 +47,40 @@ class AppNavigationShell extends ConsumerWidget {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 880),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageMargin),
-                  child: LayoutBuilder(
-                    builder: (context, headerConstraints) {
-                      final isCompactHeader = headerConstraints.maxWidth < 420;
-
-                      return Row(
-                        children: [
-                          // Header Brand Title
-                          InkWell(
-                            onTap: () => _onTapDestination(0),
-                            borderRadius: AppBorderRadius.allButton,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              child: Text(
-                                'Velocity',
-                                style: tokens.bricolage(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w700,
-                                  color: tokens.ink,
-                                ),
-                              ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.pageMargin,
+                  ),
+                  child: Row(
+                    children: [
+                      // Header Brand Title
+                      InkWell(
+                        onTap: () => _onTapDestination(0),
+                        borderRadius: AppBorderRadius.allButton,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Text(
+                            'Velocity',
+                            style: tokens.bricolage(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                              color: tokens.ink,
                             ),
                           ),
-                          const Spacer(),
+                        ),
+                      ),
+                      const Spacer(),
 
-                          // Ghost "Theme" Button
-                          VelocityButton.ghost(
-                            key: const Key('theme_mode_toggle'),
-                            onPressed: () {
-                              ref
-                                  .read(themeModeProvider.notifier)
-                                  .toggleTheme();
-                            },
-                            icon: isDark
-                                ? Icons.light_mode_outlined
-                                : Icons.dark_mode_outlined,
-                            label: isCompactHeader ? '' : 'Theme',
-                            height: 34.0,
-                            padding: EdgeInsets.symmetric(
-                              horizontal: isCompactHeader ? AppSpacing.xs : AppSpacing.s,
-                              vertical: 6,
-                            ),
-                          ),
-                          AppSpacing.hXS,
+                      // Theme Switch Toggle
+                      const ThemeModeToggle(),
+                      AppSpacing.hXS,
 
-                          // Backup / Export / Import Button
-                          Tooltip(
-                            message: 'Backup & Transfer Data',
-                            child: VelocityButton.ghost(
-                              onPressed: () =>
-                                  VelocityDataExportImportSheet.show(context),
-                              icon: Icons.sync_alt_rounded,
-                              label: '',
-                              height: 34.0,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.xs,
-                                vertical: 6,
-                              ),
-                            ),
-                          ),
-                          AppSpacing.hXS,
+                      // Data Backup / Transfer Button
+                      const HeaderDataSyncButton(),
+                      AppSpacing.hXS,
 
-                          // User Profile Pill / Auth
-                          const UserProfilePill(isCompact: true),
-                        ],
-                      );
-                    },
+                      // User Profile Pill / Auth
+                      const UserProfilePill(isCompact: true),
+                    ],
                   ),
                 ),
               ),
@@ -150,7 +115,7 @@ class AppNavigationShell extends ConsumerWidget {
                     _buildTabButton(
                       context: context,
                       title: 'Monthly',
-                      icon: Icons.calendar_month_outlined,
+                      icon: Icons.calendar_today_rounded,
                       index: 1,
                       currentIndex: currentIndex,
                       tokens: tokens,
