@@ -9,6 +9,12 @@ import '../navigation/app_navigation_shell.dart';
 import 'routes.dart';
 
 /// Top-level application routing table configured with a stateful navigation shell.
+/// Branches strictly align with the Velocity redesign tab structure:
+/// 0: Overview (/)
+/// 1: Monthly (/expenses)
+/// 2: Debts (/clearance)
+/// 3: Owed (/receivables)
+/// 4: Goals (/milestones)
 final router = GoRouter(
   initialLocation: Routes.home,
   routes: [
@@ -28,7 +34,23 @@ final router = GoRouter(
         StatefulShellBranch(
           routes: [
             GoRoute(
+              path: Routes.expenses,
+              builder: (context, state) => const ExpensesPage(),
+            ),
+            GoRoute(
+              path: '/expenses',
+              builder: (context, state) => const ExpensesPage(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
               path: Routes.clearance,
+              builder: (context, state) => const ClearancePage(),
+            ),
+            GoRoute(
+              path: '/clearance',
               builder: (context, state) => const ClearancePage(),
             ),
           ],
@@ -39,6 +61,10 @@ final router = GoRouter(
               path: Routes.receivables,
               builder: (context, state) => const ReceivablesPage(),
             ),
+            GoRoute(
+              path: '/receivables',
+              builder: (context, state) => const ReceivablesPage(),
+            ),
           ],
         ),
         StatefulShellBranch(
@@ -47,13 +73,9 @@ final router = GoRouter(
               path: Routes.milestones,
               builder: (context, state) => const MilestonesPage(),
             ),
-          ],
-        ),
-        StatefulShellBranch(
-          routes: [
             GoRoute(
-              path: Routes.expenses,
-              builder: (context, state) => const ExpensesPage(),
+              path: '/milestones',
+              builder: (context, state) => const MilestonesPage(),
             ),
           ],
         ),

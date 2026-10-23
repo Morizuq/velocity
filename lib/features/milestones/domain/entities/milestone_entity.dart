@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-/// Pure domain entity representing an upcoming big purchase or savings milestone.
+/// Pure domain entity representing a savings goal or milestone in the Goals bucket.
 @immutable
 class MilestoneEntity {
   final String id;
@@ -8,6 +8,7 @@ class MilestoneEntity {
   final double targetAmount;
   final double currentAmount;
   final bool isCompleted;
+  final int sortIndex;
 
   const MilestoneEntity({
     required this.id,
@@ -15,10 +16,12 @@ class MilestoneEntity {
     required this.targetAmount,
     required this.currentAmount,
     this.isCompleted = false,
+    this.sortIndex = 0,
   });
 
-  /// Remaining amount needed to fulfill this milestone.
-  double get remainingAmount => (targetAmount - currentAmount).clamp(0.0, targetAmount);
+  /// Remaining amount needed to fulfill this goal.
+  double get remainingAmount =>
+      (targetAmount - currentAmount).clamp(0.0, targetAmount);
 
   /// Fractional progress between 0.0 and 1.0.
   double get progressRatio {
@@ -35,10 +38,12 @@ class MilestoneEntity {
     double? targetAmount,
     double? currentAmount,
     bool? isCompleted,
+    int? sortIndex,
   }) {
     final updatedCurrent = currentAmount ?? this.currentAmount;
     final updatedTarget = targetAmount ?? this.targetAmount;
-    final automaticallyCompleted = updatedCurrent >= updatedTarget && updatedTarget > 0;
+    final automaticallyCompleted =
+        updatedCurrent >= updatedTarget && updatedTarget > 0;
 
     return MilestoneEntity(
       id: id ?? this.id,
@@ -46,24 +51,27 @@ class MilestoneEntity {
       targetAmount: updatedTarget,
       currentAmount: updatedCurrent,
       isCompleted: isCompleted ?? automaticallyCompleted,
+      sortIndex: sortIndex ?? this.sortIndex,
     );
   }
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'title': title,
-        'targetAmount': targetAmount,
-        'currentAmount': currentAmount,
-        'isCompleted': isCompleted,
-      };
+    'id': id,
+    'title': title,
+    'targetAmount': targetAmount,
+    'currentAmount': currentAmount,
+    'isCompleted': isCompleted,
+    'sortIndex': sortIndex,
+  };
 
   factory MilestoneEntity.fromMap(Map<String, dynamic> map) => MilestoneEntity(
-        id: map['id'] as String,
-        title: map['title'] as String,
-        targetAmount: (map['targetAmount'] as num).toDouble(),
-        currentAmount: (map['currentAmount'] as num).toDouble(),
-        isCompleted: map['isCompleted'] as bool? ?? false,
-      );
+    id: map['id'] as String,
+    title: (map['title'] ?? map['n'] ?? map['name'] ?? '') as String,
+    targetAmount: ((map['targetAmount'] ?? map['t'] ?? map['target'] ?? 0.0) as num).toDouble(),
+    currentAmount: ((map['currentAmount'] ?? map['p'] ?? map['saved'] ?? 0.0) as num).toDouble(),
+    isCompleted: map['isCompleted'] as bool? ?? false,
+    sortIndex: (map['sortIndex'] as num?)?.toInt() ?? 0,
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -74,8 +82,16 @@ class MilestoneEntity {
           title == other.title &&
           targetAmount == other.targetAmount &&
           currentAmount == other.currentAmount &&
-          isCompleted == other.isCompleted;
+          isCompleted == other.isCompleted &&
+          sortIndex == other.sortIndex;
 
   @override
-  int get hashCode => Object.hash(id, title, targetAmount, currentAmount, isCompleted);
+  int get hashCode => Object.hash(
+    id,
+    title,
+    targetAmount,
+    currentAmount,
+    isCompleted,
+    sortIndex,
+  );
 }

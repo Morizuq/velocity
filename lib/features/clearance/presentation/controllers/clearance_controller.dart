@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/storage/shared_prefs_storage.dart';
 import '../../../../core/sync/firestore_sync_service.dart';
@@ -46,9 +47,11 @@ class ClearanceController extends Notifier<List<DebtEntity>> {
       final raw = storage.getString(_storageKey);
       if (raw != null && raw.isNotEmpty) {
         final decoded = jsonDecode(raw) as List<dynamic>;
-        return decoded
+        final list = decoded
             .map((e) => DebtEntity.fromMap(e as Map<String, dynamic>))
             .toList();
+        list.sort((a, b) => a.sortIndex.compareTo(b.sortIndex));
+        return list;
       }
     } catch (_) {}
     return const [];
@@ -62,15 +65,16 @@ class ClearanceController extends Notifier<List<DebtEntity>> {
 
     final syncService = ref.read(firestoreSyncServiceProvider);
 
-    // If local state had items created before login, seed remote collection
     if (state.isNotEmpty) {
       syncService.syncDebts(uid, state);
     }
 
     _firestoreSub = syncService.watchDebts(uid).listen((remoteDebts) {
       if (remoteDebts.isNotEmpty || state.isEmpty) {
-        state = remoteDebts;
-        _persist(remoteDebts, pushToCloud: false);
+        final sorted = List<DebtEntity>.from(remoteDebts)
+          ..sort((a, b) => a.sortIndex.compareTo(b.sortIndex));
+        state = sorted;
+        _persist(sorted, pushToCloud: false);
       }
     });
   }
@@ -105,40 +109,7 @@ class ClearanceController extends Notifier<List<DebtEntity>> {
     _persist(updated);
   }
 
-  /// Appends a new debt to the clearance bucket.
-  void addDebt({
-    required String creditor,
-    required double totalOwed,
-    double initialPaid = 0.0,
-    DateTime? dueDate,
-  }) {
-    final newDebt = DebtEntity(
-      id: 'debt_${DateTime.now().millisecondsSinceEpoch}',
-      creditor: creditor,
-      totalOwed: totalOwed,
-      amountPaid: initialPaid,
-      isCleared: initialPaid >= totalOwed && totalOwed > 0,
-      dueDate: dueDate,
-    );
-    final updated = [...state, newDebt];
-    state = updated;
-    _persist(updated);
-  }
-
-  /// Updates or clears the due date for an existing debt.
-  void updateDueDate(String debtId, DateTime? dueDate) {
-    final updated = [
-      for (final debt in state)
-        if (debt.id == debtId)
-          debt.copyWith(dueDate: dueDate, clearDueDate: dueDate == null)
-        else
-          debt,
-    ];
-    state = updated;
-    _persist(updated);
-  }
-
-  /// Toggles clearance status directly.
+  /// Toggles whether a debt is marked as fully cleared.
   void toggleCleared(String debtId) {
     final updated = [
       for (final debt in state)
@@ -154,17 +125,74 @@ class ClearanceController extends Notifier<List<DebtEntity>> {
     _persist(updated);
   }
 
+  /// Appends a new debt to the debts bucket.
+  void addDebt({
+    required String creditor,
+    required double totalOwed,
+    double initialPaid = 0.0,
+    double monthlyPayment = 0.0,
+    DateTime? dueDate,
+  }) {
+    final newDebt = DebtEntity(
+      id: 'debt_${DateTime.now().millisecondsSinceEpoch}',
+      creditor: creditor,
+      totalOwed: totalOwed,
+      amountPaid: initialPaid,
+      monthlyPayment: monthlyPayment,
+      isCleared: initialPaid >= totalOwed && totalOwed > 0,
+      dueDate: dueDate,
+      sortIndex: state.length,
+    );
+    final updated = [...state, newDebt];
+    state = updated;
+    _persist(updated);
+  }
+
+  /// Updates an existing debt entity.
+  void updateDebt(DebtEntity updatedEntity) {
+    final updated = [
+      for (final debt in state)
+        if (debt.id == updatedEntity.id) updatedEntity else debt,
+    ];
+    state = updated;
+    _persist(updated);
+  }
+
+  /// Restores a deleted debt item (e.g. via Undo toast).
+  void restoreDebt(DebtEntity debt, int targetIndex) {
+    final list = List<DebtEntity>.from(state);
+    final insertIdx = targetIndex.clamp(0, list.length);
+    list.insert(insertIdx, debt);
+    final renumbered = _renumber(list);
+    state = renumbered;
+    _persist(renumbered);
+  }
+
+  /// Updates or clears the due date for an existing debt.
+  void updateDueDate(String debtId, DateTime? dueDate) {
+    final updated = [
+      for (final debt in state)
+        if (debt.id == debtId)
+          debt.copyWith(dueDate: dueDate, clearDueDate: dueDate == null)
+        else
+          debt,
+    ];
+    state = updated;
+    _persist(updated);
+  }
+
   /// Deletes a debt item from local storage and Cloud Firestore.
   void deleteDebt(String debtId) {
-    final updated = state.where((d) => d.id != debtId).toList();
-    state = updated;
-    _persist(updated, pushToCloud: false);
+    final list = state.where((d) => d.id != debtId).toList();
+    final renumbered = _renumber(list);
+    state = renumbered;
+    _persist(renumbered, pushToCloud: false);
     if (_currentUid != null) {
       ref.read(firestoreSyncServiceProvider).deleteDebt(_currentUid!, debtId);
     }
   }
 
-  /// Reorders debts when dragged and dropped, updating local and cloud sequence.
+  /// Reorders debts when dragged and dropped, renumbering sortIndex.
   void reorder(int oldIndex, int newIndex) {
     if (oldIndex < 0 || oldIndex >= state.length) return;
     if (newIndex < 0 || newIndex >= state.length) return;
@@ -172,8 +200,40 @@ class ClearanceController extends Notifier<List<DebtEntity>> {
     final updated = List<DebtEntity>.from(state);
     final item = updated.removeAt(oldIndex);
     updated.insert(newIndex, item);
-    state = updated;
-    _persist(updated);
+    final renumbered = _renumber(updated);
+    state = renumbered;
+    _persist(renumbered);
+  }
+
+  /// Accessibility move button support ('top', 'up', 'down').
+  void move(int index, String direction) {
+    if (index < 0 || index >= state.length) return;
+    final list = List<DebtEntity>.from(state);
+    final item = list.removeAt(index);
+    int target = index;
+    if (direction == 'top') {
+      target = 0;
+    } else if (direction == 'up') {
+      target = math.max(0, index - 1);
+    } else if (direction == 'down') {
+      target = math.min(list.length, index + 1);
+    }
+    list.insert(target, item);
+    final renumbered = _renumber(list);
+    state = renumbered;
+    _persist(renumbered);
+  }
+
+  List<DebtEntity> _renumber(List<DebtEntity> list) {
+    return [
+      for (int i = 0; i < list.length; i++) list[i].copyWith(sortIndex: i),
+    ];
+  }
+
+  /// Clears all debts (e.g. on reset or deployment purge).
+  void clearAll() {
+    state = const [];
+    _persist(const []);
   }
 }
 
@@ -182,7 +242,7 @@ final clearanceControllerProvider =
       ClearanceController.new,
     );
 
-/// Provider computing total remaining unpaid clearance debt across all active accounts.
+/// Provider computing total remaining unpaid debt across active accounts.
 final totalClearanceDebtProvider = Provider<double>((ref) {
   final debts = ref.watch(clearanceControllerProvider);
   return debts
@@ -200,4 +260,16 @@ final totalOriginalDebtProvider = Provider<double>((ref) {
 final totalDebtPaidProvider = Provider<double>((ref) {
   final debts = ref.watch(clearanceControllerProvider);
   return debts.fold<double>(0.0, (sum, debt) => sum + debt.amountPaid);
+});
+
+/// Provider computing total monthly debt commitments going out each month.
+final totalDebtMonthlyPaymentProvider = Provider<double>((ref) {
+  final debts = ref.watch(clearanceControllerProvider);
+  return debts
+      .where((d) => d.totalOwed > d.amountPaid)
+      .fold<double>(0.0, (sum, d) {
+        final left = d.totalOwed - d.amountPaid;
+        final pay = d.monthlyPayment > 0 ? math.min(d.monthlyPayment, left) : 0.0;
+        return sum + pay;
+      });
 });

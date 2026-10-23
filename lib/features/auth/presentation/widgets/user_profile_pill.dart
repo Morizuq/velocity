@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../shared/design_system/buttons/velocity_button.dart';
 import '../../../../shared/design_system/tokens/app_border_radius.dart';
 import '../../../../shared/design_system/tokens/app_font_weight.dart';
 import '../../../../shared/design_system/tokens/app_icon_size.dart';
@@ -124,53 +125,22 @@ class UserProfilePill extends ConsumerWidget {
                 ),
                 AppSpacing.vXL,
                 // Sign out button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      Navigator.of(ctx).pop();
-                      await ref.read(authControllerProvider.notifier).signOut();
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Successfully signed out'),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isDark
-                          ? const Color(0xFF2A1B1E)
-                          : const Color(0xFFFEE2E2),
-                      foregroundColor: const Color(0xFFEF4444),
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: AppSpacing.m,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: AppBorderRadius.pill,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.logout_rounded,
-                          size: AppIconSize.s,
-                          color: Color(0xFFEF4444),
+                VelocityButton.danger(
+                  label: 'Sign Out of Google',
+                  icon: Icons.logout_rounded,
+                  isFullWidth: true,
+                  onPressed: () async {
+                    Navigator.of(ctx).pop();
+                    await ref.read(authControllerProvider.notifier).signOut();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Successfully signed out'),
+                          behavior: SnackBarBehavior.floating,
                         ),
-                        AppSpacing.hS,
-                        Text(
-                          'Sign Out of Google',
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            fontWeight: AppFontWeight.bold,
-                            color: const Color(0xFFEF4444),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                      );
+                    }
+                  },
                 ),
               ],
             ),

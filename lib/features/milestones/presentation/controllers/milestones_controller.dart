@@ -126,6 +126,12 @@ class MilestonesController extends Notifier<List<MilestoneEntity>> {
     _persist(updated);
   }
 
+  List<MilestoneEntity> _renumber(List<MilestoneEntity> list) {
+    return [
+      for (int i = 0; i < list.length; i++) list[i].copyWith(sortIndex: i),
+    ];
+  }
+
   /// Adds a new milestone savings goal.
   void addMilestone({
     required String title,
@@ -138,17 +144,39 @@ class MilestonesController extends Notifier<List<MilestoneEntity>> {
       targetAmount: targetAmount,
       currentAmount: initialAmount,
       isCompleted: initialAmount >= targetAmount && targetAmount > 0,
+      sortIndex: state.length,
     );
     final updated = [...state, newMilestone];
     state = updated;
     _persist(updated);
   }
 
+  /// Updates an existing milestone.
+  void updateMilestone(MilestoneEntity updatedEntity) {
+    final updated = [
+      for (final m in state)
+        if (m.id == updatedEntity.id) updatedEntity else m,
+    ];
+    state = updated;
+    _persist(updated);
+  }
+
+  /// Restores a deleted milestone (for Undo toast).
+  void restoreMilestone(MilestoneEntity milestone, int targetIndex) {
+    final list = List<MilestoneEntity>.from(state);
+    final insertIdx = targetIndex.clamp(0, list.length);
+    list.insert(insertIdx, milestone);
+    final renumbered = _renumber(list);
+    state = renumbered;
+    _persist(renumbered);
+  }
+
   /// Deletes a milestone from local storage and Cloud Firestore.
   void deleteMilestone(String milestoneId) {
     final updated = state.where((m) => m.id != milestoneId).toList();
-    state = updated;
-    _persist(updated, pushToCloud: false);
+    final renumbered = _renumber(updated);
+    state = renumbered;
+    _persist(renumbered, pushToCloud: false);
     if (_currentUid != null) {
       ref
           .read(firestoreSyncServiceProvider)
@@ -156,16 +184,45 @@ class MilestonesController extends Notifier<List<MilestoneEntity>> {
     }
   }
 
+  /// Moves a milestone by button action (direction: 'top', 'up', 'down').
+  void move(int index, String direction) {
+    if (index < 0 || index >= state.length) return;
+    final list = List<MilestoneEntity>.from(state);
+    final item = list.removeAt(index);
+    int target;
+    if (direction == 'top') {
+      target = 0;
+    } else if (direction == 'up') {
+      target = (index - 1).clamp(0, list.length);
+    } else {
+      target = (index + 1).clamp(0, list.length);
+    }
+    list.insert(target, item);
+    final renumbered = _renumber(list);
+    state = renumbered;
+    _persist(renumbered);
+  }
+
   /// Reorders milestones when dragged and dropped, updating local and cloud sequence.
   void reorder(int oldIndex, int newIndex) {
     if (oldIndex < 0 || oldIndex >= state.length) return;
-    if (newIndex < 0 || newIndex >= state.length) return;
+    if (newIndex < 0 || newIndex > state.length) return;
     if (oldIndex == newIndex) return;
+    if (oldIndex < newIndex) {
+      newIndex -= 1;
+    }
     final updated = List<MilestoneEntity>.from(state);
     final item = updated.removeAt(oldIndex);
     updated.insert(newIndex, item);
-    state = updated;
-    _persist(updated);
+    final renumbered = _renumber(updated);
+    state = renumbered;
+    _persist(renumbered);
+  }
+
+  /// Clears all milestone entities.
+  void clearAll() {
+    state = const [];
+    _persist(const []);
   }
 }
 

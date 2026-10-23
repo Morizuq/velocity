@@ -1,22 +1,26 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../shared/design_system/buttons/velocity_pill_filter.dart';
-import '../../../shared/design_system/cards/velocity_empty_state_card.dart';
-import '../../../shared/design_system/headers/velocity_page_header.dart';
+import 'package:intl/intl.dart';
+import '../../../core/theme/velocity_tokens.dart';
+import '../../../shared/design_system/buttons/velocity_button.dart';
+import '../../../shared/design_system/layout/velocity_scaffold.dart';
 import '../../../shared/design_system/tokens/app_border_radius.dart';
-import '../../../shared/design_system/tokens/app_responsive.dart';
 import '../../../shared/design_system/tokens/app_spacing.dart';
-import '../../../shared/design_system/tokens/brand_colors.dart';
 import '../../../shared/design_system/tokens/financial_number_formatter.dart';
-import '../../dashboard/presentation/controllers/dashboard_controller.dart';
-import '../../dashboard/presentation/widgets/velocity_metric_card.dart';
+import '../../../shared/design_system/widgets/velocity_action_row.dart';
+import '../../../shared/design_system/widgets/velocity_avatar.dart';
+import '../../../shared/design_system/widgets/velocity_card.dart';
+import '../../../shared/design_system/widgets/velocity_inline_add.dart';
+import '../../../shared/design_system/widgets/velocity_payment_sheet.dart';
+import '../../../shared/design_system/widgets/velocity_progress_bar.dart';
+import '../../../shared/design_system/widgets/velocity_progress_ring.dart';
+import '../../../shared/design_system/widgets/velocity_tag.dart';
+import '../domain/entities/receivable_entity.dart';
 import '../domain/entities/receivable_type.dart';
 import 'controllers/receivables_controller.dart';
-import 'widgets/add_receivable_dialog.dart';
-import 'widgets/receivable_card.dart';
 
-/// Full-screen dedicated workspace for managing all receivables,
-/// freelance client invoices, personal loans, and settlement histories.
+/// Redesigned Owed workspace page tracking client invoices, loans, and receivables.
 class ReceivablesPage extends ConsumerStatefulWidget {
   const ReceivablesPage({super.key});
 
@@ -25,270 +29,381 @@ class ReceivablesPage extends ConsumerStatefulWidget {
 }
 
 class _ReceivablesPageState extends ConsumerState<ReceivablesPage> {
-  int _selectedFilterIndex = 0;
+  final _debtorController = TextEditingController();
+  final _amountController = TextEditingController();
+  DateTime? _selectedDueDate;
 
-  void _showAddDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AddReceivableDialog(
-        onAddConfirmed: ({
-          required debtor,
-          required totalAmount,
-          required initialReceived,
-          required type,
-          description,
-          dueDate,
-          invoiceNumber,
-          notes,
-        }) {
-          ref
-              .read(receivablesControllerProvider.notifier)
-              .addReceivable(
-                debtor: debtor,
-                description: description,
-                totalAmount: totalAmount,
-                initialReceived: initialReceived,
-                type: type,
-                dueDate: dueDate,
-                invoiceNumber: invoiceNumber,
-                notes: notes,
-              );
-          if (initialReceived > 0) {
-            ref
-                .read(dashboardControllerProvider.notifier)
-                .addIncome(initialReceived);
-          }
-        },
-      ),
+  @override
+  void dispose() {
+    _debtorController.dispose();
+    _amountController.dispose();
+    super.dispose();
+  }
+
+  void _addReceivable() {
+    final debtor = _debtorController.text.trim();
+    final amount = double.tryParse(_amountController.text.replaceAll(',', '').trim()) ?? 0.0;
+
+    if (debtor.isEmpty || amount <= 0) return;
+
+    ref.read(receivablesControllerProvider.notifier).addReceivable(
+          debtor: debtor,
+          totalAmount: amount,
+          initialReceived: 0.0,
+          type: ReceivableType.freelanceInvoice,
+          dueDate: _selectedDueDate,
+        );
+
+    _debtorController.clear();
+    _amountController.clear();
+    setState(() {
+      _selectedDueDate = null;
+    });
+  }
+
+  void _logPaymentReceived(ReceivableEntity receivable) {
+    VelocityPaymentSheet.show(
+      context,
+      title: 'Log payment received: ${receivable.debtor}',
+      subtitle: 'Outstanding balance: ${FinancialNumberFormatter.format(receivable.remainingBalance)}',
+      maxAmount: receivable.remainingBalance,
+      actionLabel: 'Log payment received',
+      onConfirm: (amount, date) {
+        ref
+            .read(receivablesControllerProvider.notifier)
+            .recordPayment(receivable.id, amount);
+      },
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final brandColors = context.brandColors;
-    final items = ref.watch(receivablesControllerProvider);
-    final totalOutstanding = ref.watch(totalReceivablesProvider);
-    final totalCollected = ref.watch(totalReceivedProvider);
-    final totalFaceValue = ref.watch(totalOriginalReceivablesProvider);
-    final receivablesNotifier = ref.read(
-      receivablesControllerProvider.notifier,
-    );
-    final dashboardNotifier = ref.read(dashboardControllerProvider.notifier);
+  void _deleteWithUndo(ReceivableEntity receivable, int index) {
+    ref
+        .read(receivablesControllerProvider.notifier)
+        .deleteReceivable(receivable.id);
 
-    final pendingCount = items.where((i) => !i.isSettled).length;
-    final settledCount = items.where((i) => i.isSettled).length;
-
-    // Filter items based on selected tab
-    final filteredItems = items.where((item) {
-      switch (_selectedFilterIndex) {
-        case 1:
-          return item.type == ReceivableType.freelanceInvoice &&
-              !item.isSettled;
-        case 2:
-          return item.type == ReceivableType.personalLoan && !item.isSettled;
-        case 3:
-          return item.type == ReceivableType.reimbursement && !item.isSettled;
-        case 4:
-          return item.isSettled;
-        default:
-          return !item.isSettled; // Default: All active
-      }
-    }).toList();
-
-    return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(
-            horizontal: context.responsive<double>(
-              mobile: AppSpacing.m,
-              tablet: AppSpacing.xl,
-              desktop: AppSpacing.xxl,
-            ),
-            vertical: AppSpacing.l,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Page Header
-              VelocityPageHeader(
-                title: 'Receivables Hub',
-                subtitle:
-                    'Track freelance invoices, personal loans, and incoming cash settlements.',
-                actions: [
-                  FilledButton.icon(
-                    onPressed: () => _showAddDialog(context),
-                    icon: const Icon(Icons.add_rounded, size: 18),
-                    label: const Text('Add Claim'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: brandColors.receivable,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.l,
-                        vertical: AppSpacing.m,
-                      ),
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: AppBorderRadius.pill,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              AppSpacing.vL,
-
-              // Top Metric KPI Cards
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final isWide = constraints.maxWidth >= 800;
-                  final outstandingCard = VelocityMetricCard(
-                    title: 'Pending Inflows',
-                    value: FinancialNumberFormatter.format(totalOutstanding),
-                    subtitle: '$pendingCount Active Accounts',
-                    icon: Icons.hourglass_top_rounded,
-                    accentColor: brandColors.receivable,
-                  );
-
-                  final collectedCard = VelocityMetricCard(
-                    title: 'Total Collected',
-                    value: FinancialNumberFormatter.format(totalCollected),
-                    subtitle: '$settledCount Settled Claims',
-                    icon: Icons.check_circle_rounded,
-                    accentColor: brandColors.progress,
-                  );
-
-                  final faceValueCard = VelocityMetricCard(
-                    title: 'Total Face Value',
-                    value: FinancialNumberFormatter.format(totalFaceValue),
-                    subtitle: '${items.length} Total Registered Claims',
-                    icon: Icons.account_balance_wallet_rounded,
-                    accentColor: brandColors.mid,
-                  );
-
-                  if (isWide) {
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(child: outstandingCard),
-                        AppSpacing.hM,
-                        Expanded(child: collectedCard),
-                        AppSpacing.hM,
-                        Expanded(child: faceValueCard),
-                      ],
-                    );
-                  }
-
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      outstandingCard,
-                      AppSpacing.vM,
-                      collectedCard,
-                      AppSpacing.vM,
-                      faceValueCard,
-                    ],
-                  );
-                },
-              ),
-              AppSpacing.vL,
-
-              // Filter Chips
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _buildFilterChip(0, 'Active All ($pendingCount)'),
-                    AppSpacing.hS,
-                    _buildFilterChip(1, 'Invoices'),
-                    AppSpacing.hS,
-                    _buildFilterChip(2, 'Loans Lent'),
-                    AppSpacing.hS,
-                    _buildFilterChip(3, 'Reimbursements'),
-                    AppSpacing.hS,
-                    _buildFilterChip(4, 'Settled ($settledCount)'),
-                  ],
-                ),
-              ),
-              AppSpacing.vL,
-
-              // Receivables List or Empty State
-              if (filteredItems.isEmpty)
-                VelocityEmptyStateCard(
-                  icon: Icons.account_balance_wallet_outlined,
-                  iconColor: brandColors.receivable,
-                  badgeLabel: 'NO CLAIMS',
-                  badgeColor: brandColors.receivable,
-                  title: 'No Claims in this View',
-                  description:
-                      'No receivables match the active filter. Record a freelance invoice, personal loan, or expense reimbursement to get started.',
-                  actionLabel: 'Add Receivable Claim',
-                  onAction: () => _showAddDialog(context),
-                )
-              else
-                ReorderableListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  buildDefaultDragHandles: false,
-                  itemCount: filteredItems.length,
-                  onReorder: (oldIndex, newIndex) {
-                    final movedItem = filteredItems[oldIndex];
-                    final fullOldIndex = items.indexOf(movedItem);
-                    final fullNewIndex = newIndex < filteredItems.length
-                        ? items.indexOf(filteredItems[newIndex])
-                        : items.length;
-                    receivablesNotifier.reorderReceivables(
-                      fullOldIndex,
-                      fullNewIndex,
-                    );
-                  },
-                  itemBuilder: (context, index) {
-                    final item = filteredItems[index];
-                    return Padding(
-                      key: ValueKey(item.id),
-                      padding: const EdgeInsets.only(bottom: AppSpacing.m),
-                      child: ReceivableCard(
-                        receivable: item,
-                        dragHandle: ReorderableDragStartListener(
-                          index: index,
-                          child: Padding(
-                            padding: const EdgeInsets.only(right: AppSpacing.xs),
-                            child: Icon(
-                              Icons.drag_indicator_rounded,
-                              size: 18,
-                              color: theme.colorScheme.onSurfaceVariant
-                                  .withValues(alpha: 0.4),
-                            ),
-                          ),
-                        ),
-                        onLogPayment: (amount) {
-                          receivablesNotifier.logPayment(item.id, amount);
-                          dashboardNotifier.addIncome(amount);
-                        },
-                        onToggleSettled: () =>
-                            receivablesNotifier.toggleSettled(item.id),
-                        onDelete: () =>
-                            receivablesNotifier.deleteReceivable(item.id),
-                      ),
-                    );
-                  },
-                ),
-              AppSpacing.vXXL,
-            ],
-          ),
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Removed ${receivable.debtor}'),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () {
+            ref
+                .read(receivablesControllerProvider.notifier)
+                .restoreReceivable(receivable, index);
+          },
         ),
       ),
     );
   }
 
-  Widget _buildFilterChip(int index, String label) {
-    final isSelected = _selectedFilterIndex == index;
-    final brandColors = context.brandColors;
+  Future<void> _pickDueDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDueDate ?? DateTime.now().add(const Duration(days: 14)),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedDueDate = picked;
+      });
+    }
+  }
 
-    return VelocityPillFilter(
-      label: label,
-      isSelected: isSelected,
-      activeColor: brandColors.receivable,
-      onTap: () => setState(() => _selectedFilterIndex = index),
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.tokens;
+    final receivables = ref.watch(receivablesControllerProvider);
+
+    final tot = receivables.fold<double>(0.0, (s, x) => s + x.totalAmount);
+    final got = receivables.fold<double>(0.0, (s, x) => s + x.amountReceived);
+    final due = receivables
+        .where((r) => !r.isSettled)
+        .fold<double>(0.0, (s, x) => s + x.remainingBalance);
+    final progress = tot > 0 ? (got / tot).clamp(0.0, 1.0) : 0.0;
+
+    final dateFormat = DateFormat('yyyy-MM-dd');
+
+    return VelocityScaffold(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Summary Card
+            VelocityCard(
+              child: Row(
+                children: [
+                  VelocityProgressRing(
+                    progress: progress,
+                    color: tokens.owedColor,
+                    size: 88,
+                  ),
+                  AppSpacing.hM,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Still to collect',
+                          style: tokens.figtree(fontSize: 14, color: tokens.muteColor),
+                        ),
+                        AppSpacing.vXXS,
+                        Text(
+                          FinancialNumberFormatter.format(due),
+                          style: tokens.bricolage(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w700,
+                            color: tokens.owedColor,
+                          ),
+                        ),
+                        AppSpacing.vXXS,
+                        Text(
+                          '${FinancialNumberFormatter.format(got)} received of ${FinancialNumberFormatter.format(tot)}.',
+                          style: tokens.figtree(fontSize: 14, color: tokens.muteColor),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            AppSpacing.vL,
+
+            // Receivables List
+            if (receivables.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.l),
+                child: Text(
+                  'Nobody owes you yet.',
+                  style: tokens.figtree(fontSize: 14, color: tokens.muteColor),
+                ),
+              )
+            else
+              for (int i = 0; i < receivables.length; i++) ...[
+                _buildReceivableCard(receivables[i], i, receivables.length),
+                AppSpacing.vCardGap,
+              ],
+
+            // Inline Add Form
+            VelocityInlineAddSection(
+              title: 'Add receivable',
+              initiallyExpanded: receivables.isEmpty,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: _debtorController,
+                    decoration: InputDecoration(
+                      labelText: 'Who owes you',
+                      hintText: 'Client name',
+                      filled: true,
+                      fillColor: tokens.bgColor,
+                      border: OutlineInputBorder(
+                        borderRadius: AppBorderRadius.allInput,
+                        borderSide: BorderSide(color: tokens.lineColor),
+                      ),
+                    ),
+                  ),
+                  AppSpacing.vXS,
+                  TextField(
+                    controller: _amountController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      labelText: 'Amount (₦)',
+                      filled: true,
+                      fillColor: tokens.bgColor,
+                      border: OutlineInputBorder(
+                        borderRadius: AppBorderRadius.allInput,
+                        borderSide: BorderSide(color: tokens.lineColor),
+                      ),
+                    ),
+                  ),
+                  AppSpacing.vXS,
+                  InkWell(
+                    onTap: _pickDueDate,
+                    borderRadius: AppBorderRadius.allInput,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.cardGap,
+                        vertical: AppSpacing.cardGap,
+                      ),
+                      decoration: BoxDecoration(
+                        color: tokens.bgColor,
+                        border: Border.all(color: tokens.lineColor),
+                        borderRadius: AppBorderRadius.allInput,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            _selectedDueDate != null
+                                ? 'Due date: ${dateFormat.format(_selectedDueDate!)}'
+                                : 'Select due date (optional)',
+                            style: tokens.figtree(
+                              fontSize: 14,
+                              color: _selectedDueDate != null ? tokens.inkColor : tokens.muteColor,
+                            ),
+                          ),
+                          Icon(Icons.calendar_today_rounded, size: 18, color: tokens.muteColor),
+                        ],
+                      ),
+                    ),
+                  ),
+                  AppSpacing.vCardGap,
+                  VelocityButton.primary(
+                    onPressed: _addReceivable,
+                    label: 'Add',
+                    isFullWidth: true,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+    );
+  }
+
+  Widget _buildReceivableCard(ReceivableEntity receivable, int index, int totalCount) {
+    final tokens = context.tokens;
+    final left = receivable.remainingBalance;
+    final isSettled = receivable.isSettled || left <= 0;
+    final progress = receivable.totalAmount > 0
+        ? (receivable.amountReceived / receivable.totalAmount).clamp(0.0, 1.0)
+        : 0.0;
+    final daysLate = receivable.daysLate;
+
+    final dateFormat = DateFormat('yyyy-MM-dd');
+
+    return VelocityCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              VelocityAvatar(
+                name: receivable.debtor,
+                color: isSettled ? tokens.inColor : tokens.owedColor,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      receivable.debtor,
+                      style: tokens.figtree(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: tokens.inkColor,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        if (isSettled)
+                          const VelocityTag(label: 'Received')
+                        else ...[
+                          if (daysLate > 0)
+                            VelocityTag(
+                              label: '$daysLate days late',
+                              variant: VelocityTagVariant.late,
+                            ),
+                          if (receivable.dueDate != null && daysLate <= 0)
+                            VelocityTag(label: 'Due ${dateFormat.format(receivable.dueDate!)}'),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          AppSpacing.vCardGap,
+
+          // Money Block (.mm): Received | Outstanding
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: tokens.bgColor,
+                    borderRadius: AppBorderRadius.allButton,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Received',
+                        style: tokens.figtree(fontSize: 12, color: tokens.muteColor),
+                      ),
+                      AppSpacing.vXXS,
+                      Text(
+                        FinancialNumberFormatter.format(receivable.amountReceived),
+                        style: tokens.bricolage(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: tokens.inColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              AppSpacing.hXS,
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: tokens.bgColor,
+                    borderRadius: AppBorderRadius.allButton,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Outstanding',
+                        style: tokens.figtree(fontSize: 12, color: tokens.muteColor),
+                      ),
+                      AppSpacing.vXXS,
+                      Text(
+                        FinancialNumberFormatter.format(math.max(0, left)),
+                        style: tokens.bricolage(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: tokens.owedColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          AppSpacing.vS,
+
+          // Progress Bar
+          VelocityProgressBar(progress: progress, color: tokens.owedColor),
+          AppSpacing.vS,
+
+          // Action Row
+          VelocityActionRow(
+            index: index,
+            totalCount: totalCount,
+            primaryActionLabel: left > 0 ? 'Log payment received' : null,
+            onPrimaryAction: left > 0 ? () => _logPaymentReceived(receivable) : null,
+            onRemove: () => _deleteWithUndo(receivable, index),
+            onMoveTop: () =>
+                ref.read(receivablesControllerProvider.notifier).move(index, 'top'),
+            onMoveUp: () =>
+                ref.read(receivablesControllerProvider.notifier).move(index, 'up'),
+            onMoveDown: () =>
+                ref.read(receivablesControllerProvider.notifier).move(index, 'down'),
+          ),
+        ],
+      ),
     );
   }
 }

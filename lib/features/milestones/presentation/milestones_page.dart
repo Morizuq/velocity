@@ -1,146 +1,298 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../shared/design_system/headers/velocity_page_header.dart';
+import '../../../core/theme/velocity_tokens.dart';
+import '../../../shared/design_system/buttons/velocity_button.dart';
+import '../../../shared/design_system/layout/velocity_scaffold.dart';
 import '../../../shared/design_system/tokens/app_border_radius.dart';
-import '../../../shared/design_system/tokens/app_responsive.dart';
 import '../../../shared/design_system/tokens/app_spacing.dart';
-import '../../../shared/design_system/tokens/brand_colors.dart';
 import '../../../shared/design_system/tokens/financial_number_formatter.dart';
-import '../../dashboard/presentation/widgets/velocity_metric_card.dart';
+import '../../../shared/design_system/widgets/velocity_action_row.dart';
+import '../../../shared/design_system/widgets/velocity_card.dart';
+import '../../../shared/design_system/widgets/velocity_inline_add.dart';
+import '../../../shared/design_system/widgets/velocity_payment_sheet.dart';
+import '../../../shared/design_system/widgets/velocity_progress_ring.dart';
+import '../../../shared/design_system/widgets/velocity_tag.dart';
+import '../../clearance/presentation/controllers/clearance_controller.dart';
+import '../../expenses/presentation/controllers/recurring_cashflow_controller.dart';
+import '../domain/entities/milestone_entity.dart';
 import 'controllers/milestones_controller.dart';
-import 'widgets/add_milestone_dialog.dart';
-import 'widgets/milestones_bucket_section.dart';
 
-/// Full-screen dedicated workspace for managing all milestone savings goals.
-class MilestonesPage extends ConsumerWidget {
+/// Redesigned Goals workspace page tracking target purchases, down payments, and surplus timeline projection.
+class MilestonesPage extends ConsumerStatefulWidget {
   const MilestonesPage({super.key});
 
-  void _showAddMilestoneDialog(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AddMilestoneDialog(
-        onAddConfirmed: (title, target, initial) {
-          ref
-              .read(milestonesControllerProvider.notifier)
-              .addMilestone(
-                title: title,
-                targetAmount: target,
-                initialAmount: initial,
-              );
-        },
+  @override
+  ConsumerState<MilestonesPage> createState() => _MilestonesPageState();
+}
+
+class _MilestonesPageState extends ConsumerState<MilestonesPage> {
+  final _titleController = TextEditingController();
+  final _targetController = TextEditingController();
+  final _savedController = TextEditingController(text: '0');
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _targetController.dispose();
+    _savedController.dispose();
+    super.dispose();
+  }
+
+  void _addGoal() {
+    final title = _titleController.text.trim();
+    final target = double.tryParse(_targetController.text.replaceAll(',', '').trim()) ?? 0.0;
+    final saved = double.tryParse(_savedController.text.replaceAll(',', '').trim()) ?? 0.0;
+
+    if (title.isEmpty || target <= 0) return;
+
+    ref.read(milestonesControllerProvider.notifier).addMilestone(
+          title: title,
+          targetAmount: target,
+          initialAmount: saved,
+        );
+
+    _titleController.clear();
+    _targetController.clear();
+    _savedController.text = '0';
+  }
+
+  void _addSavings(MilestoneEntity goal) {
+    VelocityPaymentSheet.show(
+      context,
+      title: 'Add savings: ${goal.title}',
+      subtitle: 'Remaining to reach target: ${FinancialNumberFormatter.format(goal.remainingAmount)}',
+      maxAmount: goal.remainingAmount,
+      actionLabel: 'Add savings',
+      onConfirm: (amount, date) {
+        ref.read(milestonesControllerProvider.notifier).adjustFunds(goal.id, amount);
+      },
+    );
+  }
+
+  void _deleteWithUndo(MilestoneEntity goal, int index) {
+    ref.read(milestonesControllerProvider.notifier).deleteMilestone(goal.id);
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Removed ${goal.title}'),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () {
+            ref
+                .read(milestonesControllerProvider.notifier)
+                .restoreMilestone(goal, index);
+          },
+        ),
       ),
     );
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final brandColors = context.brandColors;
-    final milestones = ref.watch(milestonesControllerProvider);
-    final totalTarget = ref.watch(totalMilestoneTargetProvider);
-    final totalSaved = ref.watch(totalMilestoneSavedProvider);
+  Widget build(BuildContext context) {
+    final tokens = context.tokens;
 
-    final completedCount = milestones.where((m) => m.isCompleted).length;
-    final activeCount = milestones.where((m) => !m.isCompleted).length;
+    final incomeList = ref.watch(monthlyInflowsProvider);
+    final expenseList = ref.watch(monthlyOutflowsProvider);
+    final dm = ref.watch(totalDebtMonthlyPaymentProvider);
+    final inc = incomeList.fold<double>(0.0, (s, x) => s + x.amount);
+    final fixed = expenseList.fold<double>(0.0, (s, x) => s + x.amount);
+    final free = math.max(0.0, inc - fixed - dm);
 
-    return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(
-            horizontal: context.responsive<double>(
-              mobile: AppSpacing.m,
-              tablet: AppSpacing.xl,
-              desktop: AppSpacing.xxl,
-            ),
-            vertical: AppSpacing.l,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Page Header
-              VelocityPageHeader(
-                title: 'Milestone Goals',
-                subtitle:
-                    'Allocate capital toward upcoming major milestones and targets.',
-                actions: [
-                  FilledButton.icon(
-                    onPressed: () => _showAddMilestoneDialog(context, ref),
-                    icon: const Icon(Icons.add_rounded, size: 18),
-                    label: const Text('New Milestone'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: brandColors.milestone,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.l,
-                        vertical: AppSpacing.m,
-                      ),
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: AppBorderRadius.pill,
-                      ),
+    final goals = ref.watch(milestonesControllerProvider);
+
+    return VelocityScaffold(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Top Summary Card
+            VelocityCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Monthly surplus',
+                    style: tokens.figtree(fontSize: 14, color: tokens.muteColor),
+                  ),
+                  AppSpacing.vXXS,
+                  Text(
+                    FinancialNumberFormatter.format(free),
+                    style: tokens.bricolage(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                      color: tokens.inColor,
                     ),
+                  ),
+                  AppSpacing.vXXS,
+                  Text(
+                    free > 0
+                        ? 'Timelines below assume all of it goes to that one goal.'
+                        : 'No surplus yet, so timelines can’t be estimated.',
+                    style: tokens.figtree(fontSize: 14, color: tokens.muteColor),
                   ),
                 ],
               ),
-              AppSpacing.vL,
+            ),
+            AppSpacing.vL,
 
-              // Metric Highlights
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final isWide = constraints.maxWidth >= 900;
-                  final isMedium = constraints.maxWidth >= 550 && !isWide;
+            // Goals List
+            if (goals.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.l),
+                child: Text(
+                  'No goals yet.',
+                  style: tokens.figtree(fontSize: 14, color: tokens.muteColor),
+                ),
+              )
+            else
+              for (int i = 0; i < goals.length; i++) ...[
+                _buildGoalCard(goals[i], i, goals.length, free),
+                AppSpacing.vCardGap,
+              ],
 
-                  final savedCard = VelocityMetricCard(
-                    title: 'Total Capital Allocated',
-                    value: FinancialNumberFormatter.format(totalSaved),
-                    subtitle: '$completedCount Completed Goals',
-                    icon: Icons.savings_outlined,
-                    accentColor: brandColors.milestone,
-                  );
-
-                  final targetCard = VelocityMetricCard(
-                    title: 'Total Milestone Target',
-                    value: FinancialNumberFormatter.format(totalTarget),
-                    subtitle: '$activeCount Active Goals in Progress',
-                    icon: Icons.flag_rounded,
-                    accentColor: brandColors.progress,
-                  );
-
-                  if (isWide) {
-                    return Row(
-                      children: [
-                        Expanded(child: savedCard),
-                        AppSpacing.hM,
-                        Expanded(child: targetCard),
-                      ],
-                    );
-                  }
-                  if (isMedium) {
-                    return Row(
-                      children: [
-                        Expanded(child: savedCard),
-                        AppSpacing.hM,
-                        Expanded(child: targetCard),
-                      ],
-                    );
-                  }
-                  return Column(
+            // Inline Add Form
+            VelocityInlineAddSection(
+              title: 'Add goal',
+              initiallyExpanded: goals.isEmpty,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: _titleController,
+                    decoration: InputDecoration(
+                      labelText: 'Goal',
+                      hintText: 'House deposit',
+                      filled: true,
+                      fillColor: tokens.bgColor,
+                      border: OutlineInputBorder(
+                        borderRadius: AppBorderRadius.allInput,
+                        borderSide: BorderSide(color: tokens.lineColor),
+                      ),
+                    ),
+                  ),
+                  AppSpacing.vXS,
+                  Row(
                     children: [
-                      savedCard,
-                      AppSpacing.vM,
-                      targetCard,
+                      Expanded(
+                        child: TextField(
+                          controller: _targetController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: InputDecoration(
+                            labelText: 'Target (₦)',
+                            filled: true,
+                            fillColor: tokens.bgColor,
+                            border: OutlineInputBorder(
+                              borderRadius: AppBorderRadius.allInput,
+                              borderSide: BorderSide(color: tokens.lineColor),
+                            ),
+                          ),
+                        ),
+                      ),
+                      AppSpacing.hXS,
+                      Expanded(
+                        child: TextField(
+                          controller: _savedController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: InputDecoration(
+                            labelText: 'Saved so far (₦)',
+                            filled: true,
+                            fillColor: tokens.bgColor,
+                            border: OutlineInputBorder(
+                              borderRadius: AppBorderRadius.allInput,
+                              borderSide: BorderSide(color: tokens.lineColor),
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
-                  );
-                },
+                  ),
+                  AppSpacing.vCardGap,
+                  VelocityButton.primary(
+                    onPressed: _addGoal,
+                    label: 'Add',
+                    isFullWidth: true,
+                  ),
+                ],
               ),
-              AppSpacing.vXL,
+            ),
+          ],
+        ),
+    );
+  }
 
-              // Full Milestones Section
-              const MilestonesBucketSection(isPreviewMode: false),
-              AppSpacing.vXXL,
+  Widget _buildGoalCard(MilestoneEntity goal, int index, int totalCount, double surplus) {
+    final tokens = context.tokens;
+    final left = goal.remainingAmount;
+    final isReached = goal.isCompleted || left <= 0;
+    final progress = goal.progressRatio;
+    final months = (surplus > 0 && left > 0) ? (left / surplus).ceil() : 0;
+
+    return VelocityCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              VelocityProgressRing(
+                progress: progress,
+                color: tokens.accentColor,
+                size: 84,
+              ),
+              AppSpacing.hM,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      goal.title,
+                      style: tokens.figtree(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: tokens.inkColor,
+                      ),
+                    ),
+                    AppSpacing.vXXS,
+                    Text(
+                      '${FinancialNumberFormatter.format(goal.currentAmount)} of ${FinancialNumberFormatter.format(goal.targetAmount)}',
+                      style: tokens.figtree(fontSize: 14, color: tokens.muteColor),
+                    ),
+                    AppSpacing.vXXS,
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        if (isReached)
+                          const VelocityTag(label: 'Reached')
+                        else ...[
+                          VelocityTag(label: '${FinancialNumberFormatter.format(left)} to go'),
+                          if (months > 0)
+                            VelocityTag(label: 'About $months mo'),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
-        ),
+          AppSpacing.vS,
+
+          // Action Row
+          VelocityActionRow(
+            index: index,
+            totalCount: totalCount,
+            primaryActionLabel: left > 0 ? 'Add savings' : null,
+            onPrimaryAction: left > 0 ? () => _addSavings(goal) : null,
+            onRemove: () => _deleteWithUndo(goal, index),
+            onMoveTop: () =>
+                ref.read(milestonesControllerProvider.notifier).move(index, 'top'),
+            onMoveUp: () =>
+                ref.read(milestonesControllerProvider.notifier).move(index, 'up'),
+            onMoveDown: () =>
+                ref.read(milestonesControllerProvider.notifier).move(index, 'down'),
+          ),
+        ],
       ),
     );
   }

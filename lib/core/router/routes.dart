@@ -2,9 +2,9 @@ class Routes {
   Routes._();
 
   static const String home = '/';
-  static const String clearance = '/clearance';
-  static const String receivables = '/receivables';
-  static const String milestones = '/milestones';
-  static const String expenses = '/expenses';
+  static const String expenses = '/monthly';
+  static const String clearance = '/debts';
+  static const String receivables = '/owed';
+  static const String milestones = '/goals';
   static const String auth = '/auth';
 }

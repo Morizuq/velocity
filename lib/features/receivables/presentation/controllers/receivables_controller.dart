@@ -108,6 +108,10 @@ class ReceivablesController extends Notifier<List<ReceivableEntity>> {
     _persist(updated);
   }
 
+  /// Alias for logPayment.
+  void recordPayment(String id, double paymentAmount) =>
+      logPayment(id, paymentAmount);
+
   /// Appends a new receivable claim to the user's ledger.
   void addReceivable({
     required String debtor,
@@ -177,6 +181,16 @@ class ReceivablesController extends Notifier<List<ReceivableEntity>> {
     }
   }
 
+  /// Restores a deleted receivable item (for Undo toast).
+  void restoreReceivable(ReceivableEntity item, int targetIndex) {
+    final list = List<ReceivableEntity>.from(state);
+    final insertIdx = targetIndex.clamp(0, list.length);
+    list.insert(insertIdx, item);
+    final renumbered = _renumber(list);
+    state = renumbered;
+    _persist(renumbered);
+  }
+
   /// Reorders items for tactical priority layout.
   void reorderReceivables(int oldIndex, int newIndex) {
     if (oldIndex < 0 ||
@@ -191,8 +205,40 @@ class ReceivablesController extends Notifier<List<ReceivableEntity>> {
     final items = List<ReceivableEntity>.from(state);
     final moved = items.removeAt(oldIndex);
     items.insert(newIndex, moved);
-    state = items;
-    _persist(items);
+    final renumbered = _renumber(items);
+    state = renumbered;
+    _persist(renumbered);
+  }
+
+  /// Accessibility move buttons ('top', 'up', 'down').
+  void move(int index, String direction) {
+    if (index < 0 || index >= state.length) return;
+    final list = List<ReceivableEntity>.from(state);
+    final item = list.removeAt(index);
+    int target = index;
+    if (direction == 'top') {
+      target = 0;
+    } else if (direction == 'up') {
+      target = (index - 1).clamp(0, list.length);
+    } else if (direction == 'down') {
+      target = (index + 1).clamp(0, list.length);
+    }
+    list.insert(target, item);
+    final renumbered = _renumber(list);
+    state = renumbered;
+    _persist(renumbered);
+  }
+
+  List<ReceivableEntity> _renumber(List<ReceivableEntity> list) {
+    return [
+      for (int i = 0; i < list.length; i++) list[i].copyWith(sortIndex: i),
+    ];
+  }
+
+  /// Clears all receivables entities.
+  void clearAll() {
+    state = const [];
+    _persist(const []);
   }
 }
 

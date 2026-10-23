@@ -160,6 +160,77 @@ class RecurringCashflowController
     }
   }
 
+  /// Moves an item within its directional group (Income or Expense) by button.
+  void moveWithinDirection(
+    String id,
+    CashflowDirection direction,
+    String moveDirection,
+  ) {
+    final group = state.where((i) => i.direction == direction).toList();
+    group.sort((a, b) => a.sortIndex.compareTo(b.sortIndex));
+    final index = group.indexWhere((i) => i.id == id);
+    if (index == -1) return;
+    final item = group.removeAt(index);
+    int target;
+    if (moveDirection == 'top') {
+      target = 0;
+    } else if (moveDirection == 'up') {
+      target = (index - 1).clamp(0, group.length);
+    } else {
+      target = (index + 1).clamp(0, group.length);
+    }
+    group.insert(target, item);
+
+    final renumberedGroup = [
+      for (int i = 0; i < group.length; i++) group[i].copyWith(sortIndex: i),
+    ];
+    final otherGroup = state.where((i) => i.direction != direction).toList();
+    final updated = [...otherGroup, ...renumberedGroup];
+    state = updated;
+    _persist(updated);
+  }
+
+  /// Reorders items within a directional group (Income or Expense) via drag.
+  void reorderWithinDirection(
+    CashflowDirection direction,
+    int oldIndex,
+    int newIndex,
+  ) {
+    final group = state.where((i) => i.direction == direction).toList();
+    group.sort((a, b) => a.sortIndex.compareTo(b.sortIndex));
+    if (oldIndex < 0 ||
+        oldIndex >= group.length ||
+        newIndex < 0 ||
+        newIndex > group.length) {
+      return;
+    }
+    if (oldIndex < newIndex) {
+      newIndex -= 1;
+    }
+    final item = group.removeAt(oldIndex);
+    group.insert(newIndex, item);
+
+    final renumberedGroup = [
+      for (int i = 0; i < group.length; i++) group[i].copyWith(sortIndex: i),
+    ];
+    final otherGroup = state.where((i) => i.direction != direction).toList();
+    final updated = [...otherGroup, ...renumberedGroup];
+    state = updated;
+    _persist(updated);
+  }
+
+  /// Restores a deleted item (e.g. for Undo toast).
+  void restoreCashflow(RecurringCashflowEntity item, [int? index]) {
+    final list = List<RecurringCashflowEntity>.from(state);
+    if (index != null && index >= 0 && index <= list.length) {
+      list.insert(index, item);
+    } else {
+      list.add(item);
+    }
+    state = list;
+    _persist(list);
+  }
+
   /// Reorders items in priority sequence.
   void reorderCashflows(int oldIndex, int newIndex) {
     if (oldIndex < 0 ||
@@ -177,6 +248,12 @@ class RecurringCashflowController
     state = items;
     _persist(items);
   }
+
+  /// Clears all recurring cashflow entities.
+  void clearAll() {
+    state = const [];
+    _persist(const []);
+  }
 }
 
 /// Provider exposing the complete list of recurring cash flows.
@@ -189,17 +266,23 @@ final recurringCashflowControllerProvider =
 /// List of all monthly recurring outgoings (Internet, Spotify, Rent, Utilities).
 final monthlyOutflowsProvider = Provider<List<RecurringCashflowEntity>>((ref) {
   final items = ref.watch(recurringCashflowControllerProvider);
-  return items
-      .where((i) => i.direction == CashflowDirection.outflowPayable)
-      .toList();
+  final outflows =
+      items
+          .where((i) => i.direction == CashflowDirection.outflowPayable)
+          .toList();
+  outflows.sort((a, b) => a.sortIndex.compareTo(b.sortIndex));
+  return outflows;
 });
 
 /// List of all monthly recurring incomings (Salary, Client Retainers).
 final monthlyInflowsProvider = Provider<List<RecurringCashflowEntity>>((ref) {
   final items = ref.watch(recurringCashflowControllerProvider);
-  return items
-      .where((i) => i.direction == CashflowDirection.inflowReceivable)
-      .toList();
+  final inflows =
+      items
+          .where((i) => i.direction == CashflowDirection.inflowReceivable)
+          .toList();
+  inflows.sort((a, b) => a.sortIndex.compareTo(b.sortIndex));
+  return inflows;
 });
 
 /// Total monthly recurring outflow commitments (Burn Rate).

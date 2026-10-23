@@ -18,6 +18,8 @@ class RecurringCashflowEntity {
   /// The calendar month key in which this item was last settled (e.g. '2026-10').
   final String? lastSettledCycle;
 
+  final int sortIndex;
+
   /// Optional expiration date for fixed-term gigs or contracts. Null if indefinite.
   final DateTime? endDate;
 
@@ -30,11 +32,12 @@ class RecurringCashflowEntity {
     required this.direction,
     required this.dayOfMonth,
     required this.category,
+    this.sortIndex = 0,
     this.lastSettledCycle,
     this.endDate,
     this.notes,
   }) : assert(amount > 0, 'Amount must be greater than zero'),
-       assert(dayOfMonth >= 1 && dayOfMonth <= 31, 'dayOfMonth must be 1..31');
+       assert(dayOfMonth >= 0 && dayOfMonth <= 31, 'dayOfMonth must be 0..31');
 
   /// Generates the standard cycle key for a given calendar moment (e.g. '2026-10').
   static String currentCycleKey([DateTime? now]) {
@@ -48,6 +51,7 @@ class RecurringCashflowEntity {
   /// Computes the exact [DateTime] of the next upcoming billing/payment event.
   DateTime nextDueDate([DateTime? fromDate]) {
     final now = fromDate ?? DateTime.now();
+    if (dayOfMonth <= 0) return now;
     final daysInCurrentMonth = DateTime(now.year, now.month + 1, 0).day;
     final clampedDay = dayOfMonth.clamp(1, daysInCurrentMonth);
     final targetDateThisMonth = DateTime(now.year, now.month, clampedDay);
@@ -67,6 +71,7 @@ class RecurringCashflowEntity {
 
   /// Calculates days until the upcoming due date relative to the given reference date.
   int daysUntilDue([DateTime? fromDate]) {
+    if (dayOfMonth <= 0) return 0;
     final now = fromDate ?? DateTime.now();
     final due = nextDueDate(now);
     final todayClean = DateTime(now.year, now.month, now.day);
@@ -75,10 +80,10 @@ class RecurringCashflowEntity {
   }
 
   /// Indicates if payment/receipt is scheduled for today.
-  bool get isDueToday => daysUntilDue() == 0;
+  bool get isDueToday => dayOfMonth > 0 && daysUntilDue() == 0;
 
   /// Indicates if this item's target day has passed in the current month without being settled.
-  bool get isOverdue => !isSettledThisMonth && daysUntilDue() < 0;
+  bool get isOverdue => dayOfMonth > 0 && !isSettledThisMonth && daysUntilDue() < 0;
 
   /// Returns a copy marked as settled for the active calendar cycle.
   RecurringCashflowEntity markSettledForCurrentCycle() {
@@ -97,6 +102,7 @@ class RecurringCashflowEntity {
     CashflowDirection? direction,
     int? dayOfMonth,
     String? category,
+    int? sortIndex,
     String? lastSettledCycle,
     DateTime? endDate,
     String? notes,
@@ -109,6 +115,7 @@ class RecurringCashflowEntity {
       direction: direction ?? this.direction,
       dayOfMonth: dayOfMonth ?? this.dayOfMonth,
       category: category ?? this.category,
+      sortIndex: sortIndex ?? this.sortIndex,
       lastSettledCycle: clearLastSettledCycle
           ? null
           : (lastSettledCycle ?? this.lastSettledCycle),
@@ -124,6 +131,7 @@ class RecurringCashflowEntity {
     'direction': direction.name,
     'dayOfMonth': dayOfMonth,
     'category': category,
+    'sortIndex': sortIndex,
     'lastSettledCycle': lastSettledCycle,
     'endDate': endDate?.toIso8601String(),
     'notes': notes,
@@ -138,8 +146,9 @@ class RecurringCashflowEntity {
           (e) => e.name == map['direction'],
           orElse: () => CashflowDirection.outflowPayable,
         ),
-        dayOfMonth: map['dayOfMonth'] as int,
+        dayOfMonth: map['dayOfMonth'] as int? ?? 0,
         category: map['category'] as String? ?? 'General',
+        sortIndex: map['sortIndex'] as int? ?? 0,
         lastSettledCycle: map['lastSettledCycle'] as String?,
         endDate: map['endDate'] != null
             ? DateTime.tryParse(map['endDate'] as String)
@@ -158,6 +167,7 @@ class RecurringCashflowEntity {
           direction == other.direction &&
           dayOfMonth == other.dayOfMonth &&
           category == other.category &&
+          sortIndex == other.sortIndex &&
           lastSettledCycle == other.lastSettledCycle &&
           endDate == other.endDate;
 
@@ -169,6 +179,7 @@ class RecurringCashflowEntity {
     direction,
     dayOfMonth,
     category,
+    sortIndex,
     lastSettledCycle,
     endDate,
   );

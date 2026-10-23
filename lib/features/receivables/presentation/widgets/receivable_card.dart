@@ -272,7 +272,10 @@ class ReceivableCard extends StatelessWidget {
   ) {
     if (receivable.isSettled) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s, vertical: AppSpacing.xxs),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.s,
+          vertical: AppSpacing.xxs,
+        ),
         decoration: BoxDecoration(
           color: brandColors.progress.withValues(alpha: 0.12),
           borderRadius: AppBorderRadius.pill,
@@ -280,7 +283,11 @@ class ReceivableCard extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check_circle_rounded, size: 12, color: brandColors.progress),
+            Icon(
+              Icons.check_circle_rounded,
+              size: 12,
+              color: brandColors.progress,
+            ),
             AppSpacing.hXXS,
             Text(
               'COLLECTED',
@@ -297,7 +304,10 @@ class ReceivableCard extends StatelessWidget {
     }
     if (receivable.isOverdue) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s, vertical: AppSpacing.xxs),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.s,
+          vertical: AppSpacing.xxs,
+        ),
         decoration: BoxDecoration(
           color: brandColors.debt.withValues(alpha: 0.12),
           borderRadius: AppBorderRadius.pill,
@@ -314,7 +324,10 @@ class ReceivableCard extends StatelessWidget {
     }
     if (receivable.isDueSoon) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s, vertical: AppSpacing.xxs),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.s,
+          vertical: AppSpacing.xxs,
+        ),
         decoration: BoxDecoration(
           color: brandColors.receivable.withValues(alpha: 0.12),
           borderRadius: AppBorderRadius.pill,

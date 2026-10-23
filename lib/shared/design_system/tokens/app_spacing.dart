@@ -29,6 +29,15 @@ class AppSpacing {
   /// Huge spacing (48.0). Used for large visual separations (e.g. form block boundaries).
   static const double xxl = 48.0;
 
+  /// Standard bottom navigation clearance (96.0) as per redesign specification.
+  static const double bottomClearance = 96.0;
+
+  /// Standard card grid gap (12.0).
+  static const double cardGap = s;
+
+  /// Standard page margin / side padding (16.0).
+  static const double pageMargin = m;
+
   // Horizontal Spacing Helpers
 
   /// Horizontal space: 4.0 wide.
@@ -74,4 +83,13 @@ class AppSpacing {
 
   /// Vertical space: 48.0 high.
   static const SizedBox vXXL = SizedBox(height: xxl);
+
+  /// Vertical card gap: 12.0 high.
+  static const SizedBox vCardGap = SizedBox(height: cardGap);
+
+  /// Horizontal card gap: 12.0 wide.
+  static const SizedBox hCardGap = SizedBox(width: cardGap);
+
+  /// Vertical bottom navigation clearance: 96.0 high.
+  static const SizedBox vBottomClearance = SizedBox(height: bottomClearance);
 }

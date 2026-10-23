@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/router/router.dart';
+import 'core/storage/sample_data_seeder.dart';
 import 'core/storage/secure_storage_service.dart';
 import 'core/storage/shared_prefs_storage.dart';
 import 'core/theme/app_theme.dart';
@@ -20,6 +21,7 @@ void main() async {
     );
   }
   final sharedPreferences = await SharedPreferences.getInstance();
+  await SampleDataSeeder.purgeSampleDataIfPresent(sharedPreferences);
 
   runApp(
     ProviderScope(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/theme_mode_notifier.dart';
+import '../../../../shared/design_system/tokens/app_border_radius.dart';
 import '../../../../shared/design_system/tokens/brand_colors.dart';
 
 /// Premium sliding segmented theme mode toggle (Sun ☀️ vs Moon 🌙).
@@ -56,7 +57,7 @@ class _ThemeModeToggleState extends ConsumerState<ThemeModeToggle> {
             height: 32,
             decoration: BoxDecoration(
               color: trackBg,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: AppBorderRadius.allPill,
               border: Border.all(color: trackBorder, width: 1),
               boxShadow: [
                 BoxShadow(
@@ -84,7 +85,7 @@ class _ThemeModeToggleState extends ConsumerState<ThemeModeToggle> {
                     margin: const EdgeInsets.symmetric(horizontal: 2.5),
                     decoration: BoxDecoration(
                       color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                      borderRadius: BorderRadius.circular(13),
+                      borderRadius: AppBorderRadius.allPill,
                       boxShadow: [
                         BoxShadow(
                           color: isDark

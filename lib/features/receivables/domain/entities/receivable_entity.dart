@@ -5,23 +5,17 @@ import 'receivable_type.dart';
 @immutable
 class ReceivableEntity {
   final String id;
-
-  /// The individual, client, or company owing the balance.
   final String debtor;
-
   final double totalAmount;
   final double amountReceived;
   final ReceivableType type;
   final bool isSettled;
   final DateTime? dueDate;
   final DateTime issueDate;
-
-  /// Optional service, project, or claim description (e.g. 'Web App Redesign').
   final String? description;
-
-  /// Optional tracking identifier for freelance billing.
   final String? invoiceNumber;
   final String? notes;
+  final int sortIndex;
 
   const ReceivableEntity({
     required this.id,
@@ -35,6 +29,7 @@ class ReceivableEntity {
     this.description,
     this.invoiceNumber,
     this.notes,
+    this.sortIndex = 0,
   }) : assert(totalAmount >= 0, 'totalAmount must be non-negative'),
        assert(amountReceived >= 0, 'amountReceived must be non-negative');
 
@@ -55,20 +50,38 @@ class ReceivableEntity {
   bool get hasDueDate => dueDate != null;
 
   /// Whether the receivable is past its expected repayment date and remains unsettled.
-  bool get isOverdue =>
-      hasDueDate && !isSettled && dueDate!.isBefore(DateTime.now());
+  bool get isOverdue {
+    if (!hasDueDate || isSettled || remainingBalance <= 0) return false;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final due = DateTime(dueDate!.year, dueDate!.month, dueDate!.day);
+    return due.isBefore(today);
+  }
+
+  /// Calculates days late relative to the current real date.
+  int get daysLate {
+    if (!hasDueDate || isSettled || remainingBalance <= 0) return 0;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final due = DateTime(dueDate!.year, dueDate!.month, dueDate!.day);
+    final diff = today.difference(due).inDays;
+    return diff > 0 ? diff : 0;
+  }
 
   /// Whether the receivable is expected within the upcoming 7 days.
   bool get isDueSoon {
     if (!hasDueDate || isSettled || isOverdue) return false;
-    final diff = dueDate!.difference(DateTime.now()).inDays;
-    return diff >= 0 && diff <= 7;
+    final diff = daysUntilDue;
+    return diff != null && diff >= 0 && diff <= 7;
   }
 
   /// Days remaining until settlement is due.
   int? get daysUntilDue {
     if (!hasDueDate) return null;
-    return dueDate!.difference(DateTime.now()).inDays;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final due = DateTime(dueDate!.year, dueDate!.month, dueDate!.day);
+    return due.difference(today).inDays;
   }
 
   ReceivableEntity copyWith({
@@ -83,6 +96,7 @@ class ReceivableEntity {
     String? description,
     String? invoiceNumber,
     String? notes,
+    int? sortIndex,
     bool clearDueDate = false,
     bool clearDescription = false,
     bool clearInvoiceNumber = false,
@@ -107,6 +121,7 @@ class ReceivableEntity {
           ? null
           : (invoiceNumber ?? this.invoiceNumber),
       notes: notes ?? this.notes,
+      sortIndex: sortIndex ?? this.sortIndex,
     );
   }
 
@@ -122,25 +137,29 @@ class ReceivableEntity {
     'description': description,
     'invoiceNumber': invoiceNumber,
     'notes': notes,
+    'sortIndex': sortIndex,
   };
 
   factory ReceivableEntity.fromMap(Map<String, dynamic> map) => ReceivableEntity(
     id: map['id'] as String,
-    debtor: map['debtor'] as String,
-    totalAmount: (map['totalAmount'] as num).toDouble(),
-    amountReceived: (map['amountReceived'] as num).toDouble(),
+    debtor: (map['debtor'] ?? map['n'] ?? '') as String,
+    totalAmount: ((map['totalAmount'] ?? map['t'] ?? map['amount'] ?? 0.0) as num).toDouble(),
+    amountReceived: ((map['amountReceived'] ?? map['p'] ?? map['received'] ?? 0.0) as num).toDouble(),
     type: ReceivableType.values.firstWhere(
       (e) => e.name == map['type'],
       orElse: () => ReceivableType.personalLoan,
     ),
     isSettled: map['isSettled'] as bool? ?? false,
-    issueDate: DateTime.parse(map['issueDate'] as String),
+    issueDate: map['issueDate'] != null
+        ? DateTime.parse(map['issueDate'] as String)
+        : DateTime.now(),
     dueDate: map['dueDate'] != null
         ? DateTime.tryParse(map['dueDate'] as String)
-        : null,
+        : (map['d'] != null ? DateTime.tryParse(map['d'] as String) : null),
     description: map['description'] as String?,
     invoiceNumber: map['invoiceNumber'] as String?,
     notes: map['notes'] as String?,
+    sortIndex: (map['sortIndex'] as num?)?.toInt() ?? 0,
   );
 
   @override
@@ -157,7 +176,9 @@ class ReceivableEntity {
           dueDate == other.dueDate &&
           issueDate == other.issueDate &&
           description == other.description &&
-          invoiceNumber == other.invoiceNumber;
+          invoiceNumber == other.invoiceNumber &&
+          notes == other.notes &&
+          sortIndex == other.sortIndex;
 
   @override
   int get hashCode => Object.hash(
@@ -171,5 +192,7 @@ class ReceivableEntity {
     issueDate,
     description,
     invoiceNumber,
+    notes,
+    sortIndex,
   );
 }

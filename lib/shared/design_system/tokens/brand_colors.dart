@@ -1,36 +1,17 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/velocity_tokens.dart';
 
-/// A [ThemeExtension] that defines custom brand colors not covered by the default
-/// Material 3 [ColorScheme].
-///
-/// This extension allows adding custom brand styles (e.g. logo color, gradient accents)
-/// that adapt dynamically when toggling between light and dark mode.
+/// Legacy [ThemeExtension] mapping for brand colors, ensuring existing widgets
+/// seamlessly integrate with the new Velocity design tokens.
 class BrandColors extends ThemeExtension<BrandColors> {
-  /// The main dark tone of the brand (used for primary text or dark logo backgrounds).
   final Color dark;
-
-  /// The medium tone of the brand (used for prominent accents or borders).
   final Color mid;
-
-  /// The very light, subtle tone of the brand (used for cards or hero backgrounds).
   final Color subtle;
-
-  /// The highly visible accent tone (used for highlight pills, tags, or focus indicators).
   final Color accent;
-
-  /// Semantic color for debts, dues, and clearance items (Neon Coral/Red).
   final Color debt;
-
-  /// Semantic color for progress, liquid cash, and positive velocity (Neon Emerald).
   final Color progress;
-
-  /// Semantic color for milestones and goals (Electric Cyan/Sky).
   final Color milestone;
-
-  /// Semantic color for receivables, freelance invoices, and pending claims (Warm Amber/Gold).
   final Color receivable;
-
-  /// Surface color for elevated glassmorphic dashboard cards.
   final Color surfaceCard;
 
   const BrandColors({
@@ -44,6 +25,21 @@ class BrandColors extends ThemeExtension<BrandColors> {
     required this.receivable,
     required this.surfaceCard,
   });
+
+  /// Factory translating directly from [VelocityTokens].
+  factory BrandColors.fromTokens(VelocityTokens tokens) {
+    return BrandColors(
+      dark: tokens.ink,
+      mid: tokens.accent,
+      subtle: tokens.soft,
+      accent: tokens.accent,
+      debt: tokens.moneyOut,
+      progress: tokens.moneyIn,
+      milestone: tokens.accent,
+      receivable: tokens.moneyOwed,
+      surfaceCard: tokens.surface,
+    );
+  }
 
   @override
   BrandColors copyWith({
@@ -89,6 +85,7 @@ class BrandColors extends ThemeExtension<BrandColors> {
 
 /// Helper extension to easily access [BrandColors] directly from the [BuildContext].
 extension BrandColorsBuildContext on BuildContext {
-  /// Resolves the current theme's brand color configurations.
-  BrandColors get brandColors => Theme.of(this).extension<BrandColors>()!;
+  BrandColors get brandColors =>
+      Theme.of(this).extension<BrandColors>() ??
+      BrandColors.fromTokens(VelocityTokens.light);
 }

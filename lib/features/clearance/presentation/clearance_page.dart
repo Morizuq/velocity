@@ -1,26 +1,25 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../shared/design_system/buttons/velocity_pill_filter.dart';
-import '../../../shared/design_system/cards/velocity_empty_state_card.dart';
-import '../../../shared/design_system/headers/velocity_page_header.dart';
+import 'package:intl/intl.dart';
+import '../../../core/theme/velocity_tokens.dart';
+import '../../../shared/design_system/buttons/velocity_button.dart';
+import '../../../shared/design_system/layout/velocity_scaffold.dart';
 import '../../../shared/design_system/tokens/app_border_radius.dart';
-import '../../../shared/design_system/tokens/app_responsive.dart';
 import '../../../shared/design_system/tokens/app_spacing.dart';
-import '../../../shared/design_system/tokens/brand_colors.dart';
 import '../../../shared/design_system/tokens/financial_number_formatter.dart';
-import '../../dashboard/presentation/controllers/dashboard_controller.dart';
-import '../../dashboard/presentation/widgets/debt_burndown_chart.dart';
-import '../../dashboard/presentation/widgets/velocity_metric_card.dart';
-import '../../expenses/domain/entities/cashflow_direction.dart';
-import '../../expenses/presentation/controllers/recurring_cashflow_controller.dart';
-import '../../expenses/presentation/widgets/add_recurring_cashflow_dialog.dart';
-import '../../expenses/presentation/widgets/recurring_cashflow_card.dart';
+import '../../../shared/design_system/widgets/velocity_action_row.dart';
+import '../../../shared/design_system/widgets/velocity_avatar.dart';
+import '../../../shared/design_system/widgets/velocity_card.dart';
+import '../../../shared/design_system/widgets/velocity_inline_add.dart';
+import '../../../shared/design_system/widgets/velocity_payment_sheet.dart';
+import '../../../shared/design_system/widgets/velocity_progress_bar.dart';
+import '../../../shared/design_system/widgets/velocity_progress_ring.dart';
+import '../../../shared/design_system/widgets/velocity_tag.dart';
+import '../domain/entities/debt_entity.dart';
 import 'controllers/clearance_controller.dart';
-import 'widgets/add_debt_dialog.dart';
-import 'widgets/clearance_bucket_section.dart';
 
-/// Full-screen dedicated workspace for managing all clearance liabilities,
-/// supporting both term debt accounts and recurring monthly bills (Spotify, Internet, Rent).
+/// Redesigned Debts workspace page tracking debt balances, payoff schedules, and partial payments.
 class ClearancePage extends ConsumerStatefulWidget {
   const ClearancePage({super.key});
 
@@ -29,310 +28,410 @@ class ClearancePage extends ConsumerStatefulWidget {
 }
 
 class _ClearancePageState extends ConsumerState<ClearancePage> {
-  int _selectedTab = 0; // 0 = Term Debts, 1 = Monthly Bills & Subscriptions
+  final _creditorController = TextEditingController();
+  final _totalController = TextEditingController();
+  final _monthlyPaymentController = TextEditingController();
+  DateTime? _selectedDueDate;
 
-  void _showAddDebtDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AddDebtDialog(
-        onAddConfirmed: (creditor, total, paid, dueDate) {
-          ref
-              .read(clearanceControllerProvider.notifier)
-              .addDebt(
-                creditor: creditor,
-                totalOwed: total,
-                initialPaid: paid,
-                dueDate: dueDate,
-              );
-        },
+  @override
+  void dispose() {
+    _creditorController.dispose();
+    _totalController.dispose();
+    _monthlyPaymentController.dispose();
+    super.dispose();
+  }
+
+  void _addDebt() {
+    final creditor = _creditorController.text.trim();
+    final total = double.tryParse(_totalController.text.replaceAll(',', '').trim()) ?? 0.0;
+    final monthly = double.tryParse(_monthlyPaymentController.text.replaceAll(',', '').trim()) ?? 0.0;
+
+    if (creditor.isEmpty || total <= 0) return;
+
+    ref.read(clearanceControllerProvider.notifier).addDebt(
+          creditor: creditor,
+          totalOwed: total,
+          initialPaid: 0.0,
+          monthlyPayment: monthly,
+          dueDate: _selectedDueDate,
+        );
+
+    _creditorController.clear();
+    _totalController.clear();
+    _monthlyPaymentController.clear();
+    setState(() {
+      _selectedDueDate = null;
+    });
+  }
+
+  void _logPayment(DebtEntity debt) {
+    VelocityPaymentSheet.show(
+      context,
+      title: 'Log payment: ${debt.creditor}',
+      subtitle: 'Outstanding balance: ${FinancialNumberFormatter.format(debt.remainingAmount)}',
+      maxAmount: debt.remainingAmount,
+      actionLabel: 'Log payment',
+      onConfirm: (amount, date) {
+        ref.read(clearanceControllerProvider.notifier).logPayment(debt.id, amount);
+      },
+    );
+  }
+
+  void _deleteWithUndo(DebtEntity debt, int index) {
+    ref.read(clearanceControllerProvider.notifier).deleteDebt(debt.id);
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Removed ${debt.creditor}'),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () {
+            ref
+                .read(clearanceControllerProvider.notifier)
+                .restoreDebt(debt, index);
+          },
+        ),
       ),
     );
   }
 
-  void _showAddMonthlyBillDialog(BuildContext context) {
-    showDialog(
+  Future<void> _pickDueDate() async {
+    final picked = await showDatePicker(
       context: context,
-      builder: (ctx) => AddRecurringCashflowDialog(
-        initialDirection: CashflowDirection.outflowPayable,
-        onAddConfirmed: ({
-          required title,
-          required amount,
-          required direction,
-          required dayOfMonth,
-          required category,
-          endDate,
-          notes,
-        }) {
-          ref
-              .read(recurringCashflowControllerProvider.notifier)
-              .addCashflow(
-                title: title,
-                amount: amount,
-                direction: direction,
-                dayOfMonth: dayOfMonth,
-                category: category,
-                endDate: endDate,
-                notes: notes,
-              );
-        },
-      ),
+      initialDate: _selectedDueDate ?? DateTime.now().add(const Duration(days: 30)),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
     );
+    if (picked != null) {
+      setState(() {
+        _selectedDueDate = picked;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final brandColors = context.brandColors;
+    final tokens = context.tokens;
     final debts = ref.watch(clearanceControllerProvider);
-    final totalRemaining = ref.watch(totalClearanceDebtProvider);
-    final totalPaid = ref.watch(totalDebtPaidProvider);
+    final dm = ref.watch(totalDebtMonthlyPaymentProvider);
 
-    final monthlyBills = ref.watch(monthlyOutflowsProvider);
-    final totalMonthlyBills = ref.watch(monthlyOutflowTotalProvider);
-    final cashflowController = ref.read(
-      recurringCashflowControllerProvider.notifier,
-    );
-    final dashboardNotifier = ref.read(dashboardControllerProvider.notifier);
+    final tot = debts.fold<double>(0.0, (s, x) => s + x.totalOwed);
+    final paid = debts.fold<double>(0.0, (s, x) => s + x.amountPaid);
+    final owe = debts
+        .where((d) => !d.isCleared)
+        .fold<double>(0.0, (s, x) => s + x.remainingAmount);
+    final progress = tot > 0 ? (paid / tot).clamp(0.0, 1.0) : 0.0;
 
-    final clearedCount = debts.where((d) => d.isCleared).length;
-    final pendingCount = debts.where((d) => !d.isCleared).length;
+    final dateFormat = DateFormat('yyyy-MM-dd');
 
-    return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(
-            horizontal: context.responsive<double>(
-              mobile: AppSpacing.m,
-              tablet: AppSpacing.xl,
-              desktop: AppSpacing.xxl,
-            ),
-            vertical: AppSpacing.l,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Page Header
-              VelocityPageHeader(
-                title: 'Clearance Hub',
-                subtitle:
-                    'Track term liabilities and monthly bills (Spotify, Internet, Utilities) with tactical velocity.',
-                actions: [
-                  FilledButton.tonalIcon(
-                    onPressed: () => _showAddMonthlyBillDialog(context),
-                    icon: const Icon(Icons.calendar_month_rounded, size: 16),
-                    label: const Text('Add Monthly Bill'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: brandColors.subtle,
-                      foregroundColor: brandColors.accent,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.m,
-                        vertical: AppSpacing.m,
-                      ),
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: AppBorderRadius.pill,
-                      ),
-                    ),
+    return VelocityScaffold(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Top Summary Card
+            VelocityCard(
+              child: Row(
+                children: [
+                  VelocityProgressRing(
+                    progress: progress,
+                    color: tokens.inColor,
+                    size: 88,
                   ),
-                  FilledButton.icon(
-                    onPressed: () => _showAddDebtDialog(context),
-                    icon: const Icon(Icons.add_rounded, size: 18),
-                    label: const Text('Add Debt Account'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: brandColors.debt,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.l,
-                        vertical: AppSpacing.m,
-                      ),
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: AppBorderRadius.pill,
-                      ),
+                  AppSpacing.hM,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Still owed',
+                          style: tokens.figtree(fontSize: 14, color: tokens.muteColor),
+                        ),
+                        AppSpacing.vXXS,
+                        Text(
+                          FinancialNumberFormatter.format(owe),
+                          style: tokens.bricolage(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w700,
+                            color: tokens.outColor,
+                          ),
+                        ),
+                        AppSpacing.vXXS,
+                        Text(
+                          '${FinancialNumberFormatter.format(paid)} paid of ${FinancialNumberFormatter.format(tot)}. ${FinancialNumberFormatter.format(dm)} goes out each month.',
+                          style: tokens.figtree(fontSize: 14, color: tokens.muteColor),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-              AppSpacing.vL,
+            ),
+            AppSpacing.vL,
 
-              // Clearance Metric Highlights
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final isWide = constraints.maxWidth >= 900;
-                  final isMedium = constraints.maxWidth >= 550 && !isWide;
+            // Debts List
+            if (debts.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.l),
+                child: Text(
+                  'No debts. Add one below.',
+                  style: tokens.figtree(fontSize: 14, color: tokens.muteColor),
+                ),
+              )
+            else
+              for (int i = 0; i < debts.length; i++) ...[
+                _buildDebtCard(debts[i], i, debts.length),
+                AppSpacing.vCardGap,
+              ],
 
-                  final remainingCard = VelocityMetricCard(
-                    title: 'Active Remaining Debt',
-                    value: FinancialNumberFormatter.format(totalRemaining),
-                    subtitle: '$pendingCount Active Debt Accounts',
-                    icon: Icons.money_off_rounded,
-                    accentColor: brandColors.debt,
-                  );
-
-                  final monthlyBillsCard = VelocityMetricCard(
-                    title: 'Monthly Recurring Bills',
-                    value: FinancialNumberFormatter.format(totalMonthlyBills),
-                    subtitle:
-                        '${monthlyBills.length} Subscriptions & Utilities',
-                    icon: Icons.calendar_month_rounded,
-                    accentColor: brandColors.accent,
-                  );
-
-                  final paidCard = VelocityMetricCard(
-                    title: 'Total Debt Cleared',
-                    value: FinancialNumberFormatter.format(totalPaid),
-                    subtitle: '$clearedCount Cleared Accounts',
-                    icon: Icons.check_circle_outline_rounded,
-                    accentColor: brandColors.progress,
-                  );
-
-                  if (isWide) {
-                    return Row(
-                      children: [
-                        Expanded(child: remainingCard),
-                        AppSpacing.hM,
-                        Expanded(child: monthlyBillsCard),
-                        AppSpacing.hM,
-                        Expanded(child: paidCard),
-                      ],
-                    );
-                  }
-
-                  if (isMedium) {
-                    return Column(
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(child: remainingCard),
-                            AppSpacing.hM,
-                            Expanded(child: monthlyBillsCard),
-                          ],
-                        ),
-                        AppSpacing.vM,
-                        paidCard,
-                      ],
-                    );
-                  }
-                  return Column(
-                    children: [
-                      remainingCard,
-                      AppSpacing.vM,
-                      monthlyBillsCard,
-                      AppSpacing.vM,
-                      paidCard,
-                    ],
-                  );
-                },
-              ),
-              AppSpacing.vL,
-
-              // Segmented Tabs: Term Debts vs Monthly Subscriptions & Bills
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    VelocityPillFilter(
-                      label: 'Term Debts (${debts.length})',
-                      isSelected: _selectedTab == 0,
-                      activeColor: brandColors.debt,
-                      onTap: () => setState(() => _selectedTab = 0),
+            // Inline Add Debt Form
+            VelocityInlineAddSection(
+              title: 'Add debt',
+              initiallyExpanded: debts.isEmpty,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: _creditorController,
+                    decoration: InputDecoration(
+                      labelText: 'Who or what',
+                      hintText: 'Bank loan',
+                      filled: true,
+                      fillColor: tokens.bgColor,
+                      border: OutlineInputBorder(
+                        borderRadius: AppBorderRadius.allInput,
+                        borderSide: BorderSide(color: tokens.lineColor),
+                      ),
                     ),
-                    AppSpacing.hS,
-                    VelocityPillFilter(
-                      label:
-                          'Monthly Bills & Subscriptions (${monthlyBills.length})',
-                      isSelected: _selectedTab == 1,
-                      activeColor: brandColors.accent,
-                      onTap: () => setState(() => _selectedTab = 1),
+                  ),
+                  AppSpacing.vXS,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _totalController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: InputDecoration(
+                            labelText: 'Total (₦)',
+                            filled: true,
+                            fillColor: tokens.bgColor,
+                            border: OutlineInputBorder(
+                              borderRadius: AppBorderRadius.allInput,
+                              borderSide: BorderSide(color: tokens.lineColor),
+                            ),
+                          ),
+                        ),
+                      ),
+                      AppSpacing.hXS,
+                      Expanded(
+                        child: TextField(
+                          controller: _monthlyPaymentController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: InputDecoration(
+                            labelText: 'Monthly payment (₦)',
+                            filled: true,
+                            fillColor: tokens.bgColor,
+                            border: OutlineInputBorder(
+                              borderRadius: AppBorderRadius.allInput,
+                              borderSide: BorderSide(color: tokens.lineColor),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  AppSpacing.vXS,
+                  InkWell(
+                    onTap: _pickDueDate,
+                    borderRadius: AppBorderRadius.allInput,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.cardGap,
+                        vertical: AppSpacing.cardGap,
+                      ),
+                      decoration: BoxDecoration(
+                        color: tokens.bgColor,
+                        border: Border.all(color: tokens.lineColor),
+                        borderRadius: AppBorderRadius.allInput,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            _selectedDueDate != null
+                                ? 'Next due date: ${dateFormat.format(_selectedDueDate!)}'
+                                : 'Select next due date (optional)',
+                            style: tokens.figtree(
+                              fontSize: 14,
+                              color: _selectedDueDate != null ? tokens.inkColor : tokens.muteColor,
+                            ),
+                          ),
+                          Icon(Icons.calendar_today_rounded, size: 18, color: tokens.muteColor),
+                        ],
+                      ),
+                    ),
+                  ),
+                  AppSpacing.vCardGap,
+                  VelocityButton.primary(
+                    onPressed: _addDebt,
+                    label: 'Add',
+                    isFullWidth: true,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+    );
+  }
+
+  Widget _buildDebtCard(DebtEntity debt, int index, int totalCount) {
+    final tokens = context.tokens;
+    final left = debt.remainingAmount;
+    final isCleared = debt.isCleared || left <= 0;
+    final progress = debt.totalOwed > 0 ? (debt.amountPaid / debt.totalOwed).clamp(0.0, 1.0) : 0.0;
+    final months = debt.monthsLeft;
+
+    final dateFormat = DateFormat('yyyy-MM-dd');
+
+    return VelocityCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              VelocityAvatar(
+                name: debt.creditor,
+                color: isCleared ? tokens.inColor : tokens.outColor,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      debt.creditor,
+                      style: tokens.figtree(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: tokens.inkColor,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        if (isCleared)
+                          const VelocityTag(label: 'Cleared')
+                        else ...[
+                          if (debt.isOverdue)
+                            const VelocityTag(
+                              label: 'Overdue',
+                              variant: VelocityTagVariant.late,
+                            ),
+                          if (debt.hasDueDate)
+                            VelocityTag(label: 'Due ${dateFormat.format(debt.dueDate!)}'),
+                          if (months > 0)
+                            VelocityTag(label: '$months mo left'),
+                        ],
+                      ],
                     ),
                   ],
                 ),
               ),
-              AppSpacing.vL,
-
-              if (_selectedTab == 0) ...[
-                // Visual Debt Burn-Down Chart
-                const DebtBurndownChart(),
-                AppSpacing.vXL,
-
-                // Full Workspace Clearance List (Full Mode)
-                const ClearanceBucketSection(),
-              ] else ...[
-                // Monthly Bills List (Spotify, Internet, Rent)
-                if (monthlyBills.isEmpty)
-                  VelocityEmptyStateCard(
-                    icon: Icons.calendar_month_rounded,
-                    iconColor: brandColors.accent,
-                    badgeLabel: 'NO MONTHLY BILLS',
-                    badgeColor: brandColors.accent,
-                    title: 'No Recurring Bills Logged',
-                    description:
-                        'Add your monthly subscriptions and operating expenses like Spotify, Internet, utilities, or rent to track what is due every cycle.',
-                    actionLabel: 'Add Spotify / Internet / Bill',
-                    onAction: () => _showAddMonthlyBillDialog(context),
-                  )
-                else
-                  ReorderableListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    buildDefaultDragHandles: false,
-                    itemCount: monthlyBills.length,
-                    onReorder: (oldIndex, newIndex) {
-                      final item = monthlyBills[oldIndex];
-                      final fullItems = ref.read(
-                        recurringCashflowControllerProvider,
-                      );
-                      final fullOldIndex = fullItems.indexOf(item);
-                      final fullNewIndex = newIndex < monthlyBills.length
-                          ? fullItems.indexOf(monthlyBills[newIndex])
-                          : fullItems.length;
-                      cashflowController.reorderCashflows(
-                        fullOldIndex,
-                        fullNewIndex,
-                      );
-                    },
-                    itemBuilder: (context, index) {
-                      final item = monthlyBills[index];
-                      return Padding(
-                        key: ValueKey(item.id),
-                        padding: const EdgeInsets.only(bottom: AppSpacing.m),
-                        child: RecurringCashflowCard(
-                          cashflow: item,
-                          dragHandle: ReorderableDragStartListener(
-                            index: index,
-                            child: Padding(
-                              padding: const EdgeInsets.only(
-                                right: AppSpacing.xs,
-                              ),
-                              child: Icon(
-                                Icons.drag_indicator_rounded,
-                                size: 18,
-                                color: theme.colorScheme.onSurfaceVariant
-                                    .withValues(alpha: 0.4),
-                              ),
-                            ),
-                          ),
-                          onToggleSettledCurrentCycle: () {
-                            final wasSettled = item.isSettledThisMonth;
-                            cashflowController.toggleSettledCurrentCycle(
-                              item.id,
-                            );
-                            if (!wasSettled) {
-                              dashboardNotifier.deductCash(item.amount);
-                            } else {
-                              dashboardNotifier.addIncome(item.amount);
-                            }
-                          },
-                          onDelete: () =>
-                              cashflowController.deleteCashflow(item.id),
-                        ),
-                      );
-                    },
-                  ),
-              ],
-              AppSpacing.vXXL,
             ],
           ),
-        ),
+          AppSpacing.vCardGap,
+
+          // Money Block (.mm): Paid | Left
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: tokens.bgColor,
+                    borderRadius: AppBorderRadius.allButton,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Paid',
+                        style: tokens.figtree(fontSize: 12, color: tokens.muteColor),
+                      ),
+                      AppSpacing.vXXS,
+                      Text(
+                        FinancialNumberFormatter.format(debt.amountPaid),
+                        style: tokens.bricolage(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: tokens.inColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              AppSpacing.hXS,
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: tokens.bgColor,
+                    borderRadius: AppBorderRadius.allButton,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Left',
+                        style: tokens.figtree(fontSize: 12, color: tokens.muteColor),
+                      ),
+                      AppSpacing.vXXS,
+                      Text(
+                        FinancialNumberFormatter.format(math.max(0, left)),
+                        style: tokens.bricolage(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: tokens.outColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          AppSpacing.vS,
+
+          // Progress Bar
+          VelocityProgressBar(progress: progress, color: tokens.inColor),
+          if (debt.monthlyPayment > 0 && left > 0) ...[
+            AppSpacing.vXXS,
+            Text(
+              '${FinancialNumberFormatter.format(math.min(debt.monthlyPayment, left))} per month',
+              style: tokens.figtree(fontSize: 14, color: tokens.muteColor),
+            ),
+          ],
+          AppSpacing.vS,
+
+          // Action Row
+          VelocityActionRow(
+            index: index,
+            totalCount: totalCount,
+            primaryActionLabel: left > 0 ? 'Log payment' : null,
+            onPrimaryAction: left > 0 ? () => _logPayment(debt) : null,
+            onRemove: () => _deleteWithUndo(debt, index),
+            onMoveTop: () =>
+                ref.read(clearanceControllerProvider.notifier).move(index, 'top'),
+            onMoveUp: () =>
+                ref.read(clearanceControllerProvider.notifier).move(index, 'up'),
+            onMoveDown: () =>
+                ref.read(clearanceControllerProvider.notifier).move(index, 'down'),
+          ),
+        ],
       ),
     );
   }

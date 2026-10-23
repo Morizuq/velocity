@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/router/routes.dart';
+import '../../../shared/design_system/buttons/velocity_button.dart';
 import '../../../shared/design_system/tokens/app_border_radius.dart';
 import '../../../shared/design_system/tokens/app_font_weight.dart';
 import '../../../shared/design_system/tokens/app_icon_size.dart';
@@ -133,22 +134,10 @@ class AuthPage extends ConsumerWidget {
                         ),
                       ),
                       AppSpacing.vL,
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () => context.go(Routes.home),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: brandColors.accent,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              vertical: AppSpacing.m,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: AppBorderRadius.pill,
-                            ),
-                          ),
-                          child: const Text('Open Wealth Dashboard'),
-                        ),
+                      VelocityButton.primary(
+                        onPressed: () => context.go(Routes.home),
+                        label: 'Open Wealth Dashboard',
+                        isFullWidth: true,
                       ),
                       AppSpacing.vM,
                       TextButton(
