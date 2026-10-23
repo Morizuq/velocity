@@ -477,6 +477,21 @@ class _ReceivablesPageState extends ConsumerState<ReceivablesPage> {
                   ],
                 ),
               ),
+              Tooltip(
+                message: 'Edit receivable',
+                child: InkWell(
+                  onTap: () => _editReceivable(receivable),
+                  borderRadius: AppBorderRadius.allButton,
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.edit_outlined,
+                      size: 16,
+                      color: tokens.muteColor,
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
           AppSpacing.vCardGap,
@@ -553,7 +568,6 @@ class _ReceivablesPageState extends ConsumerState<ReceivablesPage> {
             totalCount: totalCount,
             primaryActionLabel: isSettled ? 'Undo settled' : (left > 0 ? 'Log payment received' : null),
             onPrimaryAction: isSettled ? () => _undoSettled(receivable) : (left > 0 ? () => _logPaymentReceived(receivable) : null),
-            onEdit: () => _editReceivable(receivable),
             onRemove: () => _deleteWithUndo(receivable, index),
             onMoveTop: () =>
                 ref.read(receivablesControllerProvider.notifier).move(index, 'top'),

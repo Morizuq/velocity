@@ -370,6 +370,21 @@ class _MilestonesPageState extends ConsumerState<MilestonesPage> {
                   ],
                 ),
               ),
+              Tooltip(
+                message: 'Edit goal',
+                child: InkWell(
+                  onTap: () => _editGoal(goal),
+                  borderRadius: AppBorderRadius.allButton,
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.edit_outlined,
+                      size: 16,
+                      color: tokens.muteColor,
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
           AppSpacing.vS,
@@ -380,7 +395,6 @@ class _MilestonesPageState extends ConsumerState<MilestonesPage> {
             totalCount: totalCount,
             primaryActionLabel: left > 0 ? 'Add savings' : null,
             onPrimaryAction: left > 0 ? () => _addSavings(goal) : null,
-            onEdit: () => _editGoal(goal),
             onRemove: () => _deleteWithUndo(goal, index),
             onMoveTop: () =>
                 ref.read(milestonesControllerProvider.notifier).move(index, 'top'),

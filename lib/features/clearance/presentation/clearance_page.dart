@@ -520,6 +520,21 @@ class _ClearancePageState extends ConsumerState<ClearancePage> {
                   ],
                 ),
               ),
+              Tooltip(
+                message: 'Edit debt',
+                child: InkWell(
+                  onTap: () => _editDebt(debt),
+                  borderRadius: AppBorderRadius.allButton,
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.edit_outlined,
+                      size: 16,
+                      color: tokens.muteColor,
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
           AppSpacing.vCardGap,
@@ -603,7 +618,6 @@ class _ClearancePageState extends ConsumerState<ClearancePage> {
             totalCount: totalCount,
             primaryActionLabel: isCleared ? 'Undo cleared' : (left > 0 ? 'Log payment' : null),
             onPrimaryAction: isCleared ? () => _undoClearance(debt) : (left > 0 ? () => _logPayment(debt) : null),
-            onEdit: () => _editDebt(debt),
             onRemove: () => _deleteWithUndo(debt, index),
             onMoveTop: () =>
                 ref.read(clearanceControllerProvider.notifier).move(index, 'top'),
