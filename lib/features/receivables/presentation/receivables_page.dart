@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/velocity_tokens.dart';
 import '../../../shared/design_system/buttons/velocity_button.dart';
+import '../../../shared/design_system/inputs/thousands_separator_input_formatter.dart';
 import '../../../shared/design_system/layout/velocity_scaffold.dart';
 import '../../../shared/design_system/tokens/app_border_radius.dart';
 import '../../../shared/design_system/tokens/app_spacing.dart';
@@ -112,12 +113,16 @@ class _ReceivablesPageState extends ConsumerState<ReceivablesPage> {
   void _editReceivable(ReceivableEntity receivable) {
     final tokens = context.tokens;
     final debtorController = TextEditingController(text: receivable.debtor);
-    final totalController = TextEditingController(
-      text: receivable.totalAmount.toStringAsFixed(receivable.totalAmount.truncateToDouble() == receivable.totalAmount ? 0 : 2),
-    );
-    final receivedController = TextEditingController(
-      text: receivable.amountReceived.toStringAsFixed(receivable.amountReceived.truncateToDouble() == receivable.amountReceived ? 0 : 2),
-    );
+    String formatInitial(double val) {
+      if (val <= 0) return '';
+      final isInt = val.truncateToDouble() == val;
+      return isInt
+          ? NumberFormat('#,###').format(val.toInt())
+          : NumberFormat('#,###.##').format(val);
+    }
+
+    final totalController = TextEditingController(text: formatInitial(receivable.totalAmount));
+    final receivedController = TextEditingController(text: formatInitial(receivable.amountReceived));
     DateTime? dueDate = receivable.dueDate;
 
     showDialog(
@@ -154,6 +159,7 @@ class _ReceivablesPageState extends ConsumerState<ReceivablesPage> {
                   TextField(
                     controller: totalController,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [ThousandsSeparatorInputFormatter()],
                     decoration: InputDecoration(
                       labelText: 'Total Amount (₦)',
                       filled: true,
@@ -168,6 +174,7 @@ class _ReceivablesPageState extends ConsumerState<ReceivablesPage> {
                   TextField(
                     controller: receivedController,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [ThousandsSeparatorInputFormatter()],
                     decoration: InputDecoration(
                       labelText: 'Amount Received (₦)',
                       filled: true,
@@ -367,6 +374,7 @@ class _ReceivablesPageState extends ConsumerState<ReceivablesPage> {
                   TextField(
                     controller: _amountController,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [ThousandsSeparatorInputFormatter()],
                     decoration: InputDecoration(
                       labelText: 'Amount (₦)',
                       filled: true,

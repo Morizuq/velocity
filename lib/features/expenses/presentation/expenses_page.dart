@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/velocity_tokens.dart';
 import '../../../shared/design_system/buttons/velocity_button.dart';
+import '../../../shared/design_system/inputs/thousands_separator_input_formatter.dart';
 import '../../../shared/design_system/layout/velocity_scaffold.dart';
 import '../../../shared/design_system/tokens/app_border_radius.dart';
 import '../../../shared/design_system/tokens/app_spacing.dart';
@@ -239,6 +240,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage> {
                         child: TextField(
                           controller: _incomeAmountController,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [ThousandsSeparatorInputFormatter()],
                           decoration: InputDecoration(
                             labelText: 'Monthly amount (₦)',
                             filled: true,
@@ -353,6 +355,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage> {
                         child: TextField(
                           controller: _expenseAmountController,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [ThousandsSeparatorInputFormatter()],
                           decoration: InputDecoration(
                             labelText: 'Monthly amount (₦)',
                             filled: true,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/velocity_tokens.dart';
 import '../buttons/velocity_button.dart';
+import '../inputs/thousands_separator_input_formatter.dart';
 import '../tokens/app_border_radius.dart';
 import '../tokens/app_spacing.dart';
 import '../tokens/financial_number_formatter.dart';
@@ -64,6 +65,17 @@ class _VelocityPaymentSheetState extends State<VelocityPaymentSheet> {
   void dispose() {
     _amountController.dispose();
     super.dispose();
+  }
+
+  void _setQuickAmount(double amount) {
+    final formatted = NumberFormat('#,###').format(amount.round());
+    _amountController.text = formatted;
+    _amountController.selection = TextSelection.collapsed(
+      offset: formatted.length,
+    );
+    setState(() {
+      _errorMessage = null;
+    });
   }
 
   void _submit() {
@@ -147,13 +159,107 @@ class _VelocityPaymentSheetState extends State<VelocityPaymentSheet> {
             AppSpacing.vXXS,
             Text(
               widget.subtitle!,
-              style: tokens.figtree(
-                fontSize: 14,
-                color: tokens.muteColor,
-              ),
+              style: tokens.figtree(fontSize: 14, color: tokens.muteColor),
             ),
           ],
           AppSpacing.vM,
+
+          // Quick Action Shortcut Buttons (Pay half / Clear all)
+          if (widget.maxAmount != null && widget.maxAmount! > 0) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      final half = (widget.maxAmount! / 2).roundToDouble();
+                      _setQuickAmount(half);
+                    },
+                    borderRadius: AppBorderRadius.allButton,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: tokens.bgColor,
+                        borderRadius: AppBorderRadius.allButton,
+                        border: Border.all(color: tokens.lineColor),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Pay half',
+                            style: tokens.figtree(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: tokens.inkColor,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            FinancialNumberFormatter.format(
+                              (widget.maxAmount! / 2).roundToDouble(),
+                            ),
+                            style: tokens.bricolage(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: tokens.muteColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                AppSpacing.hXS,
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      _setQuickAmount(widget.maxAmount!);
+                    },
+                    borderRadius: AppBorderRadius.allButton,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: tokens.inColor.withValues(alpha: 0.12),
+                        borderRadius: AppBorderRadius.allButton,
+                        border: Border.all(
+                          color: tokens.inColor.withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Clear all',
+                            style: tokens.figtree(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: tokens.inColor,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            FinancialNumberFormatter.format(widget.maxAmount!),
+                            style: tokens.bricolage(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: tokens.inColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            AppSpacing.vS,
+          ],
 
           // Amount Field
           Text(
@@ -168,6 +274,7 @@ class _VelocityPaymentSheetState extends State<VelocityPaymentSheet> {
           TextField(
             controller: _amountController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [ThousandsSeparatorInputFormatter()],
             autofocus: true,
             style: tokens.bricolage(fontSize: 18, fontWeight: FontWeight.w600),
             decoration: InputDecoration(
@@ -202,10 +309,7 @@ class _VelocityPaymentSheetState extends State<VelocityPaymentSheet> {
             AppSpacing.vXS,
             Text(
               _errorMessage!,
-              style: tokens.figtree(
-                fontSize: 12,
-                color: tokens.outColor,
-              ),
+              style: tokens.figtree(fontSize: 12, color: tokens.outColor),
             ),
           ],
           AppSpacing.vS,
@@ -238,12 +342,13 @@ class _VelocityPaymentSheetState extends State<VelocityPaymentSheet> {
                 children: [
                   Text(
                     dateFormat.format(_selectedDate),
-                    style: tokens.figtree(
-                      fontSize: 15,
-                      color: tokens.inkColor,
-                    ),
+                    style: tokens.figtree(fontSize: 15, color: tokens.inkColor),
                   ),
-                  Icon(Icons.calendar_today_rounded, size: 18, color: tokens.muteColor),
+                  Icon(
+                    Icons.calendar_today_rounded,
+                    size: 18,
+                    color: tokens.muteColor,
+                  ),
                 ],
               ),
             ),

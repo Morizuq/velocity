@@ -184,7 +184,7 @@ class ClearanceController extends Notifier<List<DebtEntity>> {
     DateTime? dueDate,
   }) {
     final newDebt = DebtEntity(
-      id: 'debt_${DateTime.now().millisecondsSinceEpoch}',
+      id: 'debt_${DateTime.now().microsecondsSinceEpoch}_${state.length}',
       creditor: creditor,
       totalOwed: totalOwed,
       amountPaid: initialPaid,
@@ -274,6 +274,34 @@ class ClearanceController extends Notifier<List<DebtEntity>> {
     _persist(renumbered);
   }
 
+  /// Accessibility move button support for active debts ('top', 'up', 'down').
+  void moveActive(String debtId, String direction) {
+    final active = state
+        .where((d) => !d.isCleared && d.remainingAmount > 0)
+        .toList();
+    final index = active.indexWhere((d) => d.id == debtId);
+    if (index < 0) return;
+
+    final item = active.removeAt(index);
+    int target = index;
+    if (direction == 'top') {
+      target = 0;
+    } else if (direction == 'up') {
+      target = math.max(0, index - 1);
+    } else if (direction == 'down') {
+      target = math.min(active.length, index + 1);
+    }
+    active.insert(target, item);
+
+    final cleared = state
+        .where((d) => d.isCleared || d.remainingAmount <= 0)
+        .toList();
+    final combined = [...active, ...cleared];
+    final renumbered = _renumber(combined);
+    state = renumbered;
+    _persist(renumbered);
+  }
+
   List<DebtEntity> _renumber(List<DebtEntity> list) {
     return [
       for (int i = 0; i < list.length; i++) list[i].copyWith(sortIndex: i),
@@ -315,11 +343,12 @@ final totalDebtPaidProvider = Provider<double>((ref) {
 /// Provider computing total monthly debt commitments going out each month.
 final totalDebtMonthlyPaymentProvider = Provider<double>((ref) {
   final debts = ref.watch(clearanceControllerProvider);
-  return debts
-      .where((d) => d.totalOwed > d.amountPaid)
-      .fold<double>(0.0, (sum, d) {
-        final left = d.totalOwed - d.amountPaid;
-        final pay = d.monthlyPayment > 0 ? math.min(d.monthlyPayment, left) : 0.0;
-        return sum + pay;
-      });
+  return debts.where((d) => d.totalOwed > d.amountPaid).fold<double>(0.0, (
+    sum,
+    d,
+  ) {
+    final left = d.totalOwed - d.amountPaid;
+    final pay = d.monthlyPayment > 0 ? math.min(d.monthlyPayment, left) : 0.0;
+    return sum + pay;
+  });
 });

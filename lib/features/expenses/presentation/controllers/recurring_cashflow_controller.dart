@@ -108,7 +108,7 @@ class RecurringCashflowController
     String? notes,
   }) {
     final newItem = RecurringCashflowEntity(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: 'cashflow_${DateTime.now().microsecondsSinceEpoch}_${state.length}',
       title: title.trim(),
       amount: amount,
       direction: direction,

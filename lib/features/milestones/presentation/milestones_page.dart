@@ -1,8 +1,10 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../../../core/theme/velocity_tokens.dart';
 import '../../../shared/design_system/buttons/velocity_button.dart';
+import '../../../shared/design_system/inputs/thousands_separator_input_formatter.dart';
 import '../../../shared/design_system/layout/velocity_scaffold.dart';
 import '../../../shared/design_system/tokens/app_border_radius.dart';
 import '../../../shared/design_system/tokens/app_spacing.dart';
@@ -92,12 +94,17 @@ class _MilestonesPageState extends ConsumerState<MilestonesPage> {
   void _editGoal(MilestoneEntity goal) {
     final tokens = context.tokens;
     final titleController = TextEditingController(text: goal.title);
-    final targetController = TextEditingController(
-      text: goal.targetAmount.toStringAsFixed(goal.targetAmount.truncateToDouble() == goal.targetAmount ? 0 : 2),
-    );
-    final savedController = TextEditingController(
-      text: goal.currentAmount.toStringAsFixed(goal.currentAmount.truncateToDouble() == goal.currentAmount ? 0 : 2),
-    );
+
+    String formatInitial(double val) {
+      if (val <= 0) return '';
+      final isInt = val.truncateToDouble() == val;
+      return isInt
+          ? NumberFormat('#,###').format(val.toInt())
+          : NumberFormat('#,###.##').format(val);
+    }
+
+    final targetController = TextEditingController(text: formatInitial(goal.targetAmount));
+    final savedController = TextEditingController(text: formatInitial(goal.currentAmount));
 
     showDialog(
       context: context,
@@ -129,6 +136,7 @@ class _MilestonesPageState extends ConsumerState<MilestonesPage> {
               TextField(
                 controller: targetController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [ThousandsSeparatorInputFormatter()],
                 decoration: InputDecoration(
                   labelText: 'Target Budget (₦)',
                   filled: true,
@@ -143,6 +151,7 @@ class _MilestonesPageState extends ConsumerState<MilestonesPage> {
               TextField(
                 controller: savedController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [ThousandsSeparatorInputFormatter()],
                 decoration: InputDecoration(
                   labelText: 'Saved so far (₦)',
                   filled: true,
@@ -274,6 +283,7 @@ class _MilestonesPageState extends ConsumerState<MilestonesPage> {
                         child: TextField(
                           controller: _targetController,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [ThousandsSeparatorInputFormatter()],
                           decoration: InputDecoration(
                             labelText: 'Target (₦)',
                             filled: true,
@@ -290,6 +300,7 @@ class _MilestonesPageState extends ConsumerState<MilestonesPage> {
                         child: TextField(
                           controller: _savedController,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [ThousandsSeparatorInputFormatter()],
                           decoration: InputDecoration(
                             labelText: 'Saved so far (₦)',
                             filled: true,

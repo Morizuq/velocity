@@ -124,7 +124,7 @@ class ReceivablesController extends Notifier<List<ReceivableEntity>> {
     String? notes,
   }) {
     final newItem = ReceivableEntity(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: 'recv_${DateTime.now().microsecondsSinceEpoch}_${state.length}',
       debtor: debtor.trim(),
       totalAmount: totalAmount,
       amountReceived: initialReceived,

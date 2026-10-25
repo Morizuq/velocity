@@ -139,7 +139,7 @@ class MilestonesController extends Notifier<List<MilestoneEntity>> {
     double initialAmount = 0.0,
   }) {
     final newMilestone = MilestoneEntity(
-      id: 'milestone_${DateTime.now().millisecondsSinceEpoch}',
+      id: 'milestone_${DateTime.now().microsecondsSinceEpoch}_${state.length}',
       title: title,
       targetAmount: targetAmount,
       currentAmount: initialAmount,

@@ -93,5 +93,24 @@ void main() {
       expect(debts.first.remainingAmount, equals(70000));
       expect(debts.first.isCleared, isFalse);
     });
+
+    test('ClearanceController moveActive reorders active debts while keeping cleared debts at bottom', () {
+      final notifier = container.read(clearanceControllerProvider.notifier);
+      notifier.addDebt(creditor: 'Debt 1', totalOwed: 50000, initialPaid: 0);
+      notifier.addDebt(creditor: 'Debt 2', totalOwed: 80000, initialPaid: 0);
+      notifier.addDebt(creditor: 'Debt 3', totalOwed: 30000, initialPaid: 30000); // cleared
+
+      var debts = container.read(clearanceControllerProvider);
+      expect(debts.length, equals(3));
+      final debt2Id = debts[1].id;
+
+      // Move Debt 2 to top among active debts
+      notifier.moveActive(debt2Id, 'top');
+
+      debts = container.read(clearanceControllerProvider);
+      expect(debts[0].creditor, equals('Debt 2'));
+      expect(debts[1].creditor, equals('Debt 1'));
+      expect(debts[2].creditor, equals('Debt 3')); // Cleared stays at end
+    });
   });
 }

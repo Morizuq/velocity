@@ -12,6 +12,8 @@ class VelocityActionRow extends StatelessWidget {
   final int totalCount;
   final String? primaryActionLabel;
   final VoidCallback? onPrimaryAction;
+  final String? secondaryActionLabel;
+  final VoidCallback? onSecondaryAction;
   final VoidCallback onRemove;
   final VoidCallback? onMoveTop;
   final VoidCallback? onMoveUp;
@@ -24,6 +26,8 @@ class VelocityActionRow extends StatelessWidget {
     required this.totalCount,
     this.primaryActionLabel,
     this.onPrimaryAction,
+    this.secondaryActionLabel,
+    this.onSecondaryAction,
     required this.onRemove,
     this.onMoveTop,
     this.onMoveUp,
@@ -43,7 +47,7 @@ class VelocityActionRow extends StatelessWidget {
       spacing: AppSpacing.xs,
       runSpacing: AppSpacing.xs,
       children: [
-        // Left Actions: Priority Rank, Primary Action (Log payment / Add savings), Remove
+        // Left Actions: Priority Rank, Primary Action (Log payment / Add savings), Secondary (Clear all), Remove
         Wrap(
           crossAxisAlignment: WrapCrossAlignment.center,
           spacing: AppSpacing.xs,
@@ -61,6 +65,13 @@ class VelocityActionRow extends StatelessWidget {
               VelocityButton.soft(
                 onPressed: onPrimaryAction,
                 label: primaryActionLabel!,
+                height: 28.0,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              ),
+            if (secondaryActionLabel != null && onSecondaryAction != null)
+              VelocityButton.subtle(
+                onPressed: onSecondaryAction,
+                label: secondaryActionLabel!,
                 height: 28.0,
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               ),
