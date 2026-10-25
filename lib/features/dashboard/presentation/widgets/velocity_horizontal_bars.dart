@@ -46,7 +46,7 @@ class VelocityHorizontalBars extends StatelessWidget {
               children: [
                 // Label (fixed width for alignment)
                 SizedBox(
-                  width: 104,
+                  width: 96,
                   child: Text(
                     item.label,
                     style: tokens.figtree(
@@ -90,13 +90,17 @@ class VelocityHorizontalBars extends StatelessWidget {
                 ),
                 AppSpacing.hXS,
 
-                // Amount
-                Text(
-                  FinancialNumberFormatter.format(item.value),
-                  style: tokens.bricolage(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: tokens.inkColor,
+                // Amount (right aligned tabular display)
+                ConstrainedBox(
+                  constraints: const BoxConstraints(minWidth: 72),
+                  child: Text(
+                    FinancialNumberFormatter.format(item.value),
+                    textAlign: TextAlign.right,
+                    style: tokens.bricolage(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: tokens.inkColor,
+                    ),
                   ),
                 ),
               ],

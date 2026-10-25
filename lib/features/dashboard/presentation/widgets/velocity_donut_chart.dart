@@ -19,11 +19,7 @@ class VelocityDonutChart extends StatelessWidget {
   final List<VelocityDonutSlice> slices;
   final double size;
 
-  const VelocityDonutChart({
-    super.key,
-    required this.slices,
-    this.size = 120,
-  });
+  const VelocityDonutChart({super.key, required this.slices, this.size = 120});
 
   @override
   Widget build(BuildContext context) {
@@ -35,26 +31,22 @@ class VelocityDonutChart extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 16.0),
         child: Text(
           'Add recurring expenses to see the breakdown.',
-          style: tokens.figtree(
-            fontSize: 14,
-            color: tokens.muteColor,
-          ),
+          style: tokens.figtree(fontSize: 14, color: tokens.muteColor),
         ),
       );
     }
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isNarrow = constraints.maxWidth < 280;
+        final effectiveSize = constraints.maxWidth < 340 ? 104.0 : size;
+        final gap = constraints.maxWidth < 340 ? 12.0 : 20.0;
+        final isNarrow = constraints.maxWidth < 260;
 
         final chartWidget = SizedBox(
-          width: size,
-          height: size,
+          width: effectiveSize,
+          height: effectiveSize,
           child: CustomPaint(
-            painter: _DonutPainter(
-              slices: slices,
-              total: total,
-            ),
+            painter: _DonutPainter(slices: slices, total: total),
           ),
         );
 
@@ -65,29 +57,28 @@ class VelocityDonutChart extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 3.0),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 9,
-                          height: 9,
-                          decoration: BoxDecoration(
-                            color: slice.color,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          slice.label,
-                          style: tokens.figtree(
-                            fontSize: 14,
-                            color: tokens.inkColor,
-                          ),
-                        ),
-                      ],
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: slice.color,
+                        shape: BoxShape.circle,
+                      ),
                     ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        slice.label,
+                        style: tokens.figtree(
+                          fontSize: 14,
+                          color: tokens.inkColor,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     Text(
                       '${(slice.amount / total * 100).round()}%',
                       style: tokens.bricolage(
@@ -117,7 +108,7 @@ class VelocityDonutChart extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             chartWidget,
-            const SizedBox(width: 20),
+            SizedBox(width: gap),
             Expanded(child: legendWidget),
           ],
         );
